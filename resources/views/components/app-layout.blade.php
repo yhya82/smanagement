@@ -23,6 +23,20 @@
                     @if (auth()->user()->hasRole('Administrator'))
                         <a href="{{ route('admin.dashboard') }}" class="text-sm text-gray-600 hover:text-gray-900">Dashboard</a>
                         <a href="{{ route('admin.applications.index') }}" class="text-sm text-gray-600 hover:text-gray-900">Application Review</a>
+
+                        <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                            <button type="button" @click="open = !open" class="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1">
+                                Academic Structure
+                                <svg class="size-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                            </button>
+                            <div x-show="open" x-cloak class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-10">
+                                <a href="{{ route('admin.academic-years.index') }}" wire:navigate class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Academic Years</a>
+                                <a href="{{ route('admin.terms.index') }}" wire:navigate class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Terms</a>
+                                <a href="{{ route('admin.grade-levels.index') }}" wire:navigate class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Grade Levels</a>
+                                <a href="{{ route('admin.subjects.index') }}" wire:navigate class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Subjects</a>
+                                <a href="{{ route('admin.classes.index') }}" wire:navigate class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Classes</a>
+                            </div>
+                        </div>
                     @endif
                 </div>
 

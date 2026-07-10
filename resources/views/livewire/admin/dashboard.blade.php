@@ -14,9 +14,22 @@
             <p class="text-xs text-gray-500">Teachers</p>
             <p class="text-2xl font-semibold text-gray-900 mt-1">{{ $counts['teachers'] }}</p>
         </div>
-        <div class="bg-white p-5 rounded-lg border border-gray-200">
+        <a href="{{ route('admin.classes.index') }}" wire:navigate class="bg-white p-5 rounded-lg border border-gray-200 hover:border-indigo-300">
             <p class="text-xs text-gray-500">Classes</p>
             <p class="text-2xl font-semibold text-gray-900 mt-1">{{ $counts['classes'] }}</p>
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg border border-gray-200 mb-8">
+        <div class="px-4 py-3 border-b border-gray-100">
+            <h2 class="text-sm font-medium text-gray-900">Academic structure</h2>
+        </div>
+        <div class="grid grid-cols-5 divide-x divide-gray-100">
+            <a href="{{ route('admin.academic-years.index') }}" wire:navigate class="px-4 py-3 text-sm text-center hover:bg-gray-50">Academic Years</a>
+            <a href="{{ route('admin.terms.index') }}" wire:navigate class="px-4 py-3 text-sm text-center hover:bg-gray-50">Terms</a>
+            <a href="{{ route('admin.grade-levels.index') }}" wire:navigate class="px-4 py-3 text-sm text-center hover:bg-gray-50">Grade Levels</a>
+            <a href="{{ route('admin.subjects.index') }}" wire:navigate class="px-4 py-3 text-sm text-center hover:bg-gray-50">Subjects</a>
+            <a href="{{ route('admin.classes.index') }}" wire:navigate class="px-4 py-3 text-sm text-center hover:bg-gray-50">Classes</a>
         </div>
     </div>
 
