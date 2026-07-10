@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -101,5 +102,21 @@ class User extends Authenticatable
     public function hasRole(string $name): bool
     {
         return $this->roles()->where('name', $name)->exists();
+    }
+
+    public function avatarUrl(): ?string
+    {
+        return $this->profile_picture
+            ? Storage::disk('avatars')->url($this->profile_picture)
+            : null;
+    }
+
+    public function initials(): string
+    {
+        return collect(explode(' ', trim($this->name)))
+            ->filter()
+            ->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))
+            ->take(2)
+            ->implode('');
     }
 }
