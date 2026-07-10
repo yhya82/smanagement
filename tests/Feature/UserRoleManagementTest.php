@@ -73,6 +73,25 @@ class UserRoleManagementTest extends TestCase
         $this->assertFalse($user->fresh()->must_change_password);
     }
 
+    /**
+     * Regression test for a real bug: Livewire's own AJAX update endpoint
+     * runs through the 'web' middleware group too, so the change-password
+     * form's own submission was getting redirected by the forced-change
+     * middleware before updatePassword() ever ran - the password appeared
+     * to "not work" because it was never actually being saved. Livewire::test()
+     * doesn't dispatch through the HTTP kernel/middleware at all, which is
+     * exactly why the earlier Livewire-only test didn't catch this.
+     */
+    public function test_livewire_update_requests_are_not_blocked_by_the_forced_password_change_redirect(): void
+    {
+        $user = User::factory()->create(['status' => UserStatus::Active, 'must_change_password' => true]);
+        $user->roles()->attach(Role::where('name', 'Registrar')->first());
+
+        $response = $this->actingAs($user)->post(route('default-livewire.update'), []);
+
+        $this->assertNotSame(302, $response->getStatusCode());
+    }
+
     public function test_updating_password_requires_the_correct_current_password(): void
     {
         $user = User::factory()->create(['status' => UserStatus::Active, 'password' => bcrypt('temp-pass')]);
