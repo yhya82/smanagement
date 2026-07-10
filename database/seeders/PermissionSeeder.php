@@ -25,6 +25,7 @@ class PermissionSeeder extends Seeder
         ['key' => 'grade_levels.manage', 'description' => 'Manage grade level structure'],
         ['key' => 'classes.manage', 'description' => 'Create and edit classes'],
         ['key' => 'subjects.manage', 'description' => 'Create and edit subjects'],
+        ['key' => 'teachers.manage', 'description' => 'Onboard and edit teacher profiles'],
         ['key' => 'teacher_assignments.manage', 'description' => 'Assign teachers to subjects and classes'],
         ['key' => 'document_types.manage', 'description' => 'Configure required admission document types'],
 

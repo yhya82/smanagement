@@ -54,4 +54,42 @@ class Teacher extends Model
     {
         return $this->hasMany(ResultEntry::class, 'entered_by');
     }
+
+    /**
+     * SRS §13: teachers can only view/act on students in assigned
+     * classes/subjects. teacher_subject_assignments is the single source of
+     * truth for that scope - every policy that needs to check "can this
+     * teacher touch this class" goes through here rather than re-querying it.
+     */
+    public function hasAccessToClass(int $classId): bool
+    {
+        return $this->subjectAssignments()
+            ->where('class_id', $classId)
+            ->where('is_active', true)
+            ->exists();
+    }
+
+    public function hasAccessToStudent(Student $student): bool
+    {
+        if ($student->current_class_id === null) {
+            return false;
+        }
+
+        return $this->hasAccessToClass($student->current_class_id);
+    }
+
+    /**
+     * Grade entry is scoped to the specific subject a teacher is assigned
+     * to teach in a class, not just the class as a whole (SRS §13: "assigned
+     * classes/grades/subjects") - a teacher assigned only Math in Class A
+     * has no business entering English grades for that same class.
+     */
+    public function hasAccessToClassSubject(int $classId, int $subjectId): bool
+    {
+        return $this->subjectAssignments()
+            ->where('class_id', $classId)
+            ->where('subject_id', $subjectId)
+            ->where('is_active', true)
+            ->exists();
+    }
 }
