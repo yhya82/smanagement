@@ -40,6 +40,8 @@
                     <x-nav-link :href="route('admin.grade-review.index')" :active="request()->routeIs('admin.grade-review.*')" icon="academic-cap">Grade Review</x-nav-link>
                     <x-nav-link :href="route('admin.teachers.index')" :active="request()->routeIs('admin.teachers.*')" icon="user-group">Teachers</x-nav-link>
                     <x-nav-link :href="route('admin.audit-log.index')" :active="request()->routeIs('admin.audit-log.*')" icon="clipboard-list">Audit Log</x-nav-link>
+                    <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')" icon="identification">Users</x-nav-link>
+                    <x-nav-link :href="route('admin.roles.index')" :active="request()->routeIs('admin.roles.*')" icon="key">Roles</x-nav-link>
 
                     @php
                         $academicRoutes = ['admin.academic-years.*', 'admin.terms.*', 'admin.grade-levels.*', 'admin.subjects.*', 'admin.classes.*'];
@@ -116,6 +118,7 @@
                                 <p class="text-xs text-gray-500 truncate">{{ $currentUser->email }}</p>
                             </div>
                             <a href="{{ route('profile') }}" wire:navigate class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">View Profile</a>
+                            <a href="{{ route('password.change') }}" wire:navigate class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Change Password</a>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
                                 <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Log out</button>

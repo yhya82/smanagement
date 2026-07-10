@@ -11,12 +11,17 @@ use App\Livewire\Admin\Classes\Subjects as ClassSubjects;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\GradeLevels\Index as GradeLevelsIndex;
 use App\Livewire\Admin\GradeReviewIndex;
+use App\Livewire\Admin\Roles\Index as RolesIndex;
+use App\Livewire\Admin\Roles\Show as RolesShow;
 use App\Livewire\Admin\Students\Index as StudentsIndex;
 use App\Livewire\Admin\Students\Show as StudentsShow;
 use App\Livewire\Admin\Subjects\Index as SubjectsIndex;
 use App\Livewire\Admin\Teachers\Index as TeachersIndex;
 use App\Livewire\Admin\Teachers\Show as TeachersShow;
 use App\Livewire\Admin\Terms\Index as TermsIndex;
+use App\Livewire\Admin\Users\Create as UsersCreate;
+use App\Livewire\Admin\Users\Index as UsersIndex;
+use App\Livewire\Admin\Users\Show as UsersShow;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'role:Administrator'])->prefix('admin')->name('admin.')->group(function () {
@@ -42,4 +47,11 @@ Route::middleware(['auth', 'role:Administrator'])->prefix('admin')->name('admin.
     Route::get('students/{student}', StudentsShow::class)->name('students.show');
 
     Route::get('audit-log', AuditLogsIndex::class)->name('audit-log.index');
+
+    Route::get('users', UsersIndex::class)->name('users.index');
+    Route::get('users/create', UsersCreate::class)->name('users.create');
+    Route::get('users/{user}', UsersShow::class)->name('users.show');
+
+    Route::get('roles', RolesIndex::class)->name('roles.index');
+    Route::get('roles/{role}', RolesShow::class)->name('roles.show');
 });

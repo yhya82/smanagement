@@ -160,7 +160,7 @@ class TeacherStudentFlowTest extends TestCase
 
     public function test_teacher_cannot_mark_attendance_for_an_unassigned_class(): void
     {
-        $teacherUser = User::create(['name' => 'Other Teacher', 'email' => 'other@test.com', 'password' => 'x', 'status' => UserStatus::Active]);
+        $teacherUser = User::create(['name' => 'Other Teacher', 'email' => 'other@test.com', 'password' => 'x', 'status' => UserStatus::Active, 'must_change_password' => false]);
         $teacherUser->roles()->attach(Role::where('name', 'Teacher')->first());
         $teacher = Teacher::create(['user_id' => $teacherUser->id, 'employee_no' => 'T2', 'hire_date' => '2020-01-01']);
 
@@ -171,7 +171,7 @@ class TeacherStudentFlowTest extends TestCase
 
     public function test_a_teacher_cannot_grade_a_subject_they_are_not_assigned_to(): void
     {
-        $teacherUser = User::create(['name' => 'Other Teacher', 'email' => 'other2@test.com', 'password' => 'x', 'status' => UserStatus::Active]);
+        $teacherUser = User::create(['name' => 'Other Teacher', 'email' => 'other2@test.com', 'password' => 'x', 'status' => UserStatus::Active, 'must_change_password' => false]);
         $teacherUser->roles()->attach(Role::where('name', 'Teacher')->first());
         Teacher::create(['user_id' => $teacherUser->id, 'employee_no' => 'T3', 'hire_date' => '2020-01-01']);
 

@@ -30,6 +30,11 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            // Factory-created users represent already-set-up test accounts,
+            // not a fresh onboarding case - the real flows (application
+            // approval, teacher onboarding, import, admin reset) set this
+            // true explicitly themselves.
+            'must_change_password' => false,
         ];
     }
 

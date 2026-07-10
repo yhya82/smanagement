@@ -150,7 +150,7 @@ class StudentManagementTest extends TestCase
 
     public function test_teacher_cannot_access_student_management(): void
     {
-        $teacherUser = User::create(['name' => 'T', 'email' => 't@test.com', 'password' => 'x', 'status' => UserStatus::Active]);
+        $teacherUser = User::create(['name' => 'T', 'email' => 't@test.com', 'password' => 'x', 'status' => UserStatus::Active, 'must_change_password' => false]);
         $teacherUser->roles()->attach(Role::where('name', 'Teacher')->first());
 
         $this->actingAs($teacherUser)

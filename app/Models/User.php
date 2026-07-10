@@ -92,16 +92,22 @@ class User extends Authenticatable
         return $this->hasMany(AuditLog::class);
     }
 
+    /**
+     * Disabling a role (Role::is_active = false) revokes it from every
+     * holder immediately without deleting the row or touching foreign
+     * keys - both checks filter it out here rather than in every caller.
+     */
     public function hasPermission(string $key): bool
     {
         return $this->roles()
+            ->where('is_active', true)
             ->whereHas('permissions', fn ($query) => $query->where('key', $key))
             ->exists();
     }
 
     public function hasRole(string $name): bool
     {
-        return $this->roles()->where('name', $name)->exists();
+        return $this->roles()->where('is_active', true)->where('name', $name)->exists();
     }
 
     public function avatarUrl(): ?string

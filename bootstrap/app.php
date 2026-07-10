@@ -14,6 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
+
+        $middleware->appendToGroup('web', \App\Http\Middleware\EnsureUserHasChangedPassword::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
