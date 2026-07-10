@@ -15,6 +15,8 @@ class Index extends Component
 {
     public bool $showCreateForm = false;
 
+    public ?string $classTeacherError = null;
+
     public string $grade_level_id = '';
 
     public string $academic_year_id = '';
@@ -57,9 +59,12 @@ class Index extends Component
 
     /**
      * "Class teacher" (homeroom) is distinct from a TeacherSubjectAssignment
-     * ("class to teach" - a specific subject taught to a class): this is
-     * classes.homeroom_teacher_id, which had a column, FK, and model relation
-     * already in the schema but no UI anywhere to ever set it.
+     * ("class to teach" - a specific subject taught to a class, unrestricted
+     * to one class): this is classes.homeroom_teacher_id, which had a column,
+     * FK, and model relation already in the schema but no UI anywhere to
+     * ever set it. A teacher can only be homeroom of one class at a time
+     * (unique constraint) - checked here first for a friendly error instead
+     * of letting the DB constraint throw a raw exception.
      */
     public function assignClassTeacher(int $classId, string $teacherId): void
     {
@@ -67,7 +72,25 @@ class Index extends Component
 
         $this->authorize('update', $class);
 
-        $class->update(['homeroom_teacher_id' => $teacherId !== '' ? $teacherId : null]);
+        $this->classTeacherError = null;
+
+        if ($teacherId === '') {
+            $class->update(['homeroom_teacher_id' => null]);
+
+            return;
+        }
+
+        $existingClass = SchoolClass::where('homeroom_teacher_id', $teacherId)
+            ->where('id', '!=', $classId)
+            ->first();
+
+        if ($existingClass) {
+            $this->classTeacherError = "This teacher is already the class teacher for '{$existingClass->name}'.";
+
+            return;
+        }
+
+        $class->update(['homeroom_teacher_id' => $teacherId]);
     }
 
     public function render()

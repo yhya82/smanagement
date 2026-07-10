@@ -178,6 +178,27 @@ class AcademicStructureTest extends TestCase
         $this->assertNull($class->fresh()->homeroom_teacher_id);
     }
 
+    public function test_a_teacher_cannot_be_class_teacher_of_two_classes_at_once(): void
+    {
+        $gradeLevel = GradeLevel::create(['name' => 'Primary 1', 'sort_order' => 1]);
+        $year = AcademicYear::create(['name' => '2026/2027', 'start_date' => '2026-09-01', 'end_date' => '2027-07-31', 'is_active' => true]);
+        $classA = SchoolClass::create(['grade_level_id' => $gradeLevel->id, 'academic_year_id' => $year->id, 'name' => 'Class A']);
+        $classB = SchoolClass::create(['grade_level_id' => $gradeLevel->id, 'academic_year_id' => $year->id, 'name' => 'Class B']);
+
+        $teacherUser = User::factory()->create(['status' => UserStatus::Active]);
+        $teacher = Teacher::create(['user_id' => $teacherUser->id, 'employee_no' => 'T1', 'status' => 'active', 'hire_date' => '2020-01-01']);
+
+        $component = Livewire::actingAs($this->admin)->test(ClassesIndex::class);
+
+        $component->call('assignClassTeacher', $classA->id, (string) $teacher->id);
+        $this->assertSame($teacher->id, $classA->fresh()->homeroom_teacher_id);
+
+        $component->call('assignClassTeacher', $classB->id, (string) $teacher->id)
+            ->assertSet('classTeacherError', fn ($value) => str_contains($value, 'Class A'));
+
+        $this->assertNull($classB->fresh()->homeroom_teacher_id);
+    }
+
     public function test_only_active_teachers_are_offered_as_class_teacher(): void
     {
         $gradeLevel = GradeLevel::create(['name' => 'Primary 1', 'sort_order' => 1]);

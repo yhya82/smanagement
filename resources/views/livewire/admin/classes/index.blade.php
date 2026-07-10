@@ -7,6 +7,12 @@
         </button>
     </div>
 
+    @if ($classTeacherError)
+        <div class="mb-6 rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+            {{ $classTeacherError }}
+        </div>
+    @endif
+
     @if ($showCreateForm)
         <form wire:submit="create" class="bg-white p-6 rounded-lg border border-gray-200 mb-6 space-y-4">
             <div class="grid grid-cols-4 gap-4">
