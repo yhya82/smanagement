@@ -81,12 +81,13 @@
             <div class="pointer-events-none absolute inset-0" style="background-image: radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1px); background-size: 24px 24px;"></div>
 
             <div class="relative">
-                <div class="flex items-center gap-2.5">
-                    @if ($schoolSetting->logoUrl())
-                        <img src="{{ $schoolSetting->logoUrl() }}" class="w-9 h-9 rounded-lg object-cover shrink-0" alt="">
-                    @endif
-                    <span class="text-lg font-semibold">{{ $schoolSetting->name }}</span>
-                </div>
+                @if ($schoolSetting->logoUrl())
+                    <img src="{{ $schoolSetting->logoUrl() }}" class="w-9 h-9 rounded-lg object-cover shrink-0" alt="">
+                @else
+                    <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/15">
+                        <x-icon name="academic-cap" class="size-5" />
+                    </span>
+                @endif
             </div>
 
             <div class="relative max-w-md">
@@ -115,6 +116,18 @@
                             <x-icon name="user-group" class="size-3.5" />
                         </span>
                         <span class="text-sm text-indigo-50">Dedicated dashboards for every role</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-white/15">
+                            <x-icon name="key" class="size-3.5" />
+                        </span>
+                        <span class="text-sm text-indigo-50">Secure, permission-based access for every role</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-white/15">
+                            <x-icon name="clipboard-list" class="size-3.5" />
+                        </span>
+                        <span class="text-sm text-indigo-50">Full audit trail for every change made</span>
                     </li>
                 </ul>
             </div>
