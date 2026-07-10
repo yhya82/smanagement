@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\TeacherSubjectAssignment;
 use App\Models\User;
+use App\Observers\TeacherActivationObserver;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -37,5 +39,7 @@ class AppServiceProvider extends ServiceProvider
 
             return in_array($ability, ['update', 'delete'], true) ? null : true;
         });
+
+        TeacherSubjectAssignment::observe(TeacherActivationObserver::class);
     }
 }
