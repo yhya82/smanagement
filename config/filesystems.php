@@ -60,6 +60,30 @@ return [
             'report' => false,
         ],
 
+        // Profile pictures for all four actors (admin, registrar, teacher,
+        // student). Public visibility because avatars are displayed directly
+        // via <img> tags throughout the UI.
+        'avatars' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/avatars'),
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage/avatars',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
+        // Admission documents (birth certificate, passport photo originals).
+        // Deliberately NOT on the public disk: these contain sensitive PII
+        // and must only ever be reachable through an authenticated,
+        // permission-checked controller route, never a guessable public URL.
+        'documents' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/documents'),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*
