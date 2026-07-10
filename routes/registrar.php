@@ -3,9 +3,11 @@
 use App\Livewire\Registrar\ApplicationCreate;
 use App\Livewire\Registrar\ApplicationIndex;
 use App\Livewire\Registrar\ApplicationShow;
+use App\Livewire\Registrar\Dashboard;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'role:Registrar'])->prefix('registrar')->name('registrar.')->group(function () {
+    Route::get('dashboard', Dashboard::class)->name('dashboard');
     Route::get('applications', ApplicationIndex::class)->name('applications.index');
     Route::get('applications/create', ApplicationCreate::class)->name('applications.create');
     Route::get('applications/{application}', ApplicationShow::class)->name('applications.show');

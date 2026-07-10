@@ -15,11 +15,13 @@
                     <a href="{{ route('dashboard') }}" class="font-semibold text-gray-900">School Management</a>
 
                     @if (auth()->user()->hasRole('Registrar'))
+                        <a href="{{ route('registrar.dashboard') }}" class="text-sm text-gray-600 hover:text-gray-900">Dashboard</a>
                         <a href="{{ route('registrar.applications.index') }}" class="text-sm text-gray-600 hover:text-gray-900">Applications</a>
                         <a href="{{ route('registrar.applications.create') }}" class="text-sm text-gray-600 hover:text-gray-900">New Application</a>
                     @endif
 
                     @if (auth()->user()->hasRole('Administrator'))
+                        <a href="{{ route('admin.dashboard') }}" class="text-sm text-gray-600 hover:text-gray-900">Dashboard</a>
                         <a href="{{ route('admin.applications.index') }}" class="text-sm text-gray-600 hover:text-gray-900">Application Review</a>
                     @endif
                 </div>
