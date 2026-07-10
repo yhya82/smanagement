@@ -21,7 +21,7 @@
         {{-- Sidebar --}}
         <aside
             :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-            class="fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 flex flex-col transform transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:shrink-0">
+            class="fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 flex flex-col transform transition-transform duration-200 ease-in-out md:translate-x-0">
             <div class="h-14 flex items-center px-4 border-b border-gray-200 shrink-0">
                 <a href="{{ route('dashboard') }}" wire:navigate class="font-semibold text-gray-900 truncate">School Management</a>
             </div>
