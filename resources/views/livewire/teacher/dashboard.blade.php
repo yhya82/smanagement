@@ -9,14 +9,8 @@
     </div>
 
     <div class="grid grid-cols-2 gap-4 mb-8">
-        <div class="bg-white p-5 rounded-lg border border-gray-200">
-            <p class="text-xs text-gray-500">My classes/subjects</p>
-            <p class="text-2xl font-semibold text-gray-900 mt-1">{{ $assignments->count() }}</p>
-        </div>
-        <div class="bg-white p-5 rounded-lg border border-gray-200">
-            <p class="text-xs text-gray-500">Students in my classes</p>
-            <p class="text-2xl font-semibold text-gray-900 mt-1">{{ $studentCount }}</p>
-        </div>
+        <x-stat-card icon="book-open" label="My classes/subjects">{{ $assignments->count() }}</x-stat-card>
+        <x-stat-card icon="users" label="Students in my classes">{{ $studentCount }}</x-stat-card>
     </div>
 
     <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">

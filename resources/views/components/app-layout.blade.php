@@ -28,18 +28,18 @@
 
             <nav class="flex-1 overflow-y-auto px-2 py-4 space-y-1">
                 @if ($currentUser->hasRole('Registrar'))
-                    <x-nav-link :href="route('registrar.dashboard')" :active="request()->routeIs('registrar.dashboard')">Dashboard</x-nav-link>
-                    <x-nav-link :href="route('registrar.applications.index')" :active="request()->routeIs('registrar.applications.*')">Applications</x-nav-link>
-                    <x-nav-link :href="route('registrar.applications.create')" :active="request()->routeIs('registrar.applications.create')">New Application</x-nav-link>
+                    <x-nav-link :href="route('registrar.dashboard')" :active="request()->routeIs('registrar.dashboard')" icon="home">Dashboard</x-nav-link>
+                    <x-nav-link :href="route('registrar.applications.index')" :active="request()->routeIs('registrar.applications.*')" icon="document-text">Applications</x-nav-link>
+                    <x-nav-link :href="route('registrar.applications.create')" :active="request()->routeIs('registrar.applications.create')" icon="document-plus">New Application</x-nav-link>
                 @endif
 
                 @if ($currentUser->hasRole('Administrator'))
-                    <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">Dashboard</x-nav-link>
-                    <x-nav-link :href="route('admin.students.index')" :active="request()->routeIs('admin.students.*')">Students</x-nav-link>
-                    <x-nav-link :href="route('admin.applications.index')" :active="request()->routeIs('admin.applications.*')">Application Review</x-nav-link>
-                    <x-nav-link :href="route('admin.grade-review.index')" :active="request()->routeIs('admin.grade-review.*')">Grade Review</x-nav-link>
-                    <x-nav-link :href="route('admin.teachers.index')" :active="request()->routeIs('admin.teachers.*')">Teachers</x-nav-link>
-                    <x-nav-link :href="route('admin.audit-log.index')" :active="request()->routeIs('admin.audit-log.*')">Audit Log</x-nav-link>
+                    <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')" icon="home">Dashboard</x-nav-link>
+                    <x-nav-link :href="route('admin.students.index')" :active="request()->routeIs('admin.students.*')" icon="users">Students</x-nav-link>
+                    <x-nav-link :href="route('admin.applications.index')" :active="request()->routeIs('admin.applications.*')" icon="document-text">Application Review</x-nav-link>
+                    <x-nav-link :href="route('admin.grade-review.index')" :active="request()->routeIs('admin.grade-review.*')" icon="academic-cap">Grade Review</x-nav-link>
+                    <x-nav-link :href="route('admin.teachers.index')" :active="request()->routeIs('admin.teachers.*')" icon="user-group">Teachers</x-nav-link>
+                    <x-nav-link :href="route('admin.audit-log.index')" :active="request()->routeIs('admin.audit-log.*')" icon="clipboard-list">Audit Log</x-nav-link>
 
                     @php
                         $academicRoutes = ['admin.academic-years.*', 'admin.terms.*', 'admin.grade-levels.*', 'admin.subjects.*', 'admin.classes.*'];
@@ -48,27 +48,30 @@
                     <div x-data="{ open: {{ $academicActive ? 'true' : 'false' }} }">
                         <button type="button" x-on:click="open = !open"
                             class="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">
-                            <span>Academic Structure</span>
-                            <svg :class="open ? 'rotate-180' : ''" class="size-3 transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                            <span class="flex items-center gap-2.5">
+                                <x-icon name="building-library" class="size-5 shrink-0" />
+                                <span>Academic Structure</span>
+                            </span>
+                            <svg :class="open ? 'rotate-180' : ''" class="size-3 shrink-0 transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
                         </button>
                         <div x-show="open" x-cloak class="mt-1 ml-3 space-y-1 border-l border-gray-100 pl-3">
-                            <x-nav-link :href="route('admin.academic-years.index')" :active="request()->routeIs('admin.academic-years.*')">Academic Years</x-nav-link>
-                            <x-nav-link :href="route('admin.terms.index')" :active="request()->routeIs('admin.terms.*')">Terms</x-nav-link>
-                            <x-nav-link :href="route('admin.grade-levels.index')" :active="request()->routeIs('admin.grade-levels.*')">Grade Levels</x-nav-link>
-                            <x-nav-link :href="route('admin.subjects.index')" :active="request()->routeIs('admin.subjects.*')">Subjects</x-nav-link>
-                            <x-nav-link :href="route('admin.classes.index')" :active="request()->routeIs('admin.classes.*')">Classes</x-nav-link>
+                            <x-nav-link :href="route('admin.academic-years.index')" :active="request()->routeIs('admin.academic-years.*')" icon="calendar">Academic Years</x-nav-link>
+                            <x-nav-link :href="route('admin.terms.index')" :active="request()->routeIs('admin.terms.*')" icon="clock">Terms</x-nav-link>
+                            <x-nav-link :href="route('admin.grade-levels.index')" :active="request()->routeIs('admin.grade-levels.*')" icon="academic-cap">Grade Levels</x-nav-link>
+                            <x-nav-link :href="route('admin.subjects.index')" :active="request()->routeIs('admin.subjects.*')" icon="book-open">Subjects</x-nav-link>
+                            <x-nav-link :href="route('admin.classes.index')" :active="request()->routeIs('admin.classes.*')" icon="rectangle-group">Classes</x-nav-link>
                         </div>
                     </div>
                 @endif
 
                 @if ($currentUser->hasRole('Teacher'))
-                    <x-nav-link :href="route('teacher.dashboard')" :active="request()->routeIs('teacher.dashboard')">Dashboard</x-nav-link>
+                    <x-nav-link :href="route('teacher.dashboard')" :active="request()->routeIs('teacher.dashboard')" icon="home">Dashboard</x-nav-link>
                 @endif
 
                 @if ($currentUser->hasRole('Student'))
-                    <x-nav-link :href="route('student.dashboard')" :active="request()->routeIs('student.dashboard')">Dashboard</x-nav-link>
-                    <x-nav-link :href="route('student.results')" :active="request()->routeIs('student.results')">My Results</x-nav-link>
-                    <x-nav-link :href="route('student.attendance')" :active="request()->routeIs('student.attendance')">My Attendance</x-nav-link>
+                    <x-nav-link :href="route('student.dashboard')" :active="request()->routeIs('student.dashboard')" icon="home">Dashboard</x-nav-link>
+                    <x-nav-link :href="route('student.results')" :active="request()->routeIs('student.results')" icon="chart-bar">My Results</x-nav-link>
+                    <x-nav-link :href="route('student.attendance')" :active="request()->routeIs('student.attendance')" icon="calendar">My Attendance</x-nav-link>
                 @endif
             </nav>
         </aside>
@@ -87,9 +90,7 @@
                 <div class="flex items-center gap-3">
                     <a href="{{ route('notifications') }}" wire:navigate
                         class="relative text-gray-500 hover:text-gray-700 p-1.5 rounded-full hover:bg-gray-100">
-                        <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
-                        </svg>
+                        <x-icon name="bell" class="size-5" />
                         @if ($unreadCount > 0)
                             <span class="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-medium">
                                 {{ $unreadCount > 9 ? '9+' : $unreadCount }}

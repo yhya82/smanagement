@@ -8,18 +8,9 @@
     </div>
 
     <div class="grid grid-cols-3 gap-4 mb-8">
-        <div class="bg-white p-5 rounded-lg border border-gray-200">
-            <p class="text-xs text-gray-500">Pending review</p>
-            <p class="text-2xl font-semibold text-yellow-600 mt-1">{{ $counts['pending'] }}</p>
-        </div>
-        <div class="bg-white p-5 rounded-lg border border-gray-200">
-            <p class="text-xs text-gray-500">Approved</p>
-            <p class="text-2xl font-semibold text-green-600 mt-1">{{ $counts['approved'] }}</p>
-        </div>
-        <div class="bg-white p-5 rounded-lg border border-gray-200">
-            <p class="text-xs text-gray-500">Rejected</p>
-            <p class="text-2xl font-semibold text-red-600 mt-1">{{ $counts['rejected'] }}</p>
-        </div>
+        <x-stat-card icon="clock" color="yellow" label="Pending review">{{ $counts['pending'] }}</x-stat-card>
+        <x-stat-card icon="check-circle" color="green" label="Approved">{{ $counts['approved'] }}</x-stat-card>
+        <x-stat-card icon="x-circle" color="red" label="Rejected">{{ $counts['rejected'] }}</x-stat-card>
     </div>
 
     <div class="bg-white rounded-lg border border-gray-200">

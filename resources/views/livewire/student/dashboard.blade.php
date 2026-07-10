@@ -2,18 +2,15 @@
     <h1 class="text-xl font-semibold text-gray-900 mb-6">Welcome, {{ $student->first_name }}</h1>
 
     <div class="grid grid-cols-3 gap-4 mb-8">
-        <a href="{{ route('student.results') }}" wire:navigate class="bg-white p-5 rounded-lg border border-gray-200 hover:border-indigo-300">
-            <p class="text-xs text-gray-500">Approved results</p>
-            <p class="text-2xl font-semibold text-gray-900 mt-1">{{ $approvedResultsCount }}</p>
-        </a>
-        <a href="{{ route('student.attendance') }}" wire:navigate class="bg-white p-5 rounded-lg border border-gray-200 hover:border-indigo-300">
-            <p class="text-xs text-gray-500">Present (last 10 days)</p>
-            <p class="text-2xl font-semibold text-gray-900 mt-1">{{ $presentCount }}/{{ $recentAttendance->count() }}</p>
-        </a>
-        <a href="{{ route('notifications') }}" wire:navigate class="bg-white p-5 rounded-lg border border-gray-200 hover:border-indigo-300">
-            <p class="text-xs text-gray-500">Unread notifications</p>
-            <p class="text-2xl font-semibold text-gray-900 mt-1">{{ $unreadNotifications->count() }}</p>
-        </a>
+        <x-stat-card icon="chart-bar" label="Approved results" :href="route('student.results')">
+            {{ $approvedResultsCount }}
+        </x-stat-card>
+        <x-stat-card icon="check-circle" label="Present (last 10 days)" :href="route('student.attendance')">
+            {{ $presentCount }}/{{ $recentAttendance->count() }}
+        </x-stat-card>
+        <x-stat-card icon="bell" label="Unread notifications" :href="route('notifications')">
+            {{ $unreadNotifications->count() }}
+        </x-stat-card>
     </div>
 
     <div class="bg-white rounded-lg border border-gray-200">
