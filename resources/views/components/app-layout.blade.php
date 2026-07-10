@@ -22,6 +22,7 @@
 
                     @if (auth()->user()->hasRole('Administrator'))
                         <a href="{{ route('admin.dashboard') }}" class="text-sm text-gray-600 hover:text-gray-900">Dashboard</a>
+                        <a href="{{ route('admin.students.index') }}" class="text-sm text-gray-600 hover:text-gray-900">Students</a>
                         <a href="{{ route('admin.applications.index') }}" class="text-sm text-gray-600 hover:text-gray-900">Application Review</a>
                         <a href="{{ route('admin.grade-review.index') }}" class="text-sm text-gray-600 hover:text-gray-900">Grade Review</a>
                         <a href="{{ route('admin.teachers.index') }}" class="text-sm text-gray-600 hover:text-gray-900">Teachers</a>

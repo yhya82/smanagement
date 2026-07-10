@@ -8,6 +8,8 @@ use App\Livewire\Admin\Classes\Subjects as ClassSubjects;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\GradeLevels\Index as GradeLevelsIndex;
 use App\Livewire\Admin\GradeReviewIndex;
+use App\Livewire\Admin\Students\Index as StudentsIndex;
+use App\Livewire\Admin\Students\Show as StudentsShow;
 use App\Livewire\Admin\Subjects\Index as SubjectsIndex;
 use App\Livewire\Admin\Teachers\Index as TeachersIndex;
 use App\Livewire\Admin\Teachers\Show as TeachersShow;
@@ -30,4 +32,7 @@ Route::middleware(['auth', 'role:Administrator'])->prefix('admin')->name('admin.
     Route::get('teachers/{teacher}', TeachersShow::class)->name('teachers.show');
 
     Route::get('grade-review', GradeReviewIndex::class)->name('grade-review.index');
+
+    Route::get('students', StudentsIndex::class)->name('students.index');
+    Route::get('students/{student}', StudentsShow::class)->name('students.show');
 });

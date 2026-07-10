@@ -6,14 +6,14 @@
             <p class="text-xs text-gray-500">Pending applications</p>
             <p class="text-2xl font-semibold text-yellow-600 mt-1">{{ $counts['pending_applications'] }}</p>
         </a>
-        <div class="bg-white p-5 rounded-lg border border-gray-200">
+        <a href="{{ route('admin.students.index') }}" wire:navigate class="bg-white p-5 rounded-lg border border-gray-200 hover:border-indigo-300">
             <p class="text-xs text-gray-500">Active students</p>
             <p class="text-2xl font-semibold text-gray-900 mt-1">{{ $counts['active_students'] }}</p>
-        </div>
-        <div class="bg-white p-5 rounded-lg border border-gray-200">
+        </a>
+        <a href="{{ route('admin.teachers.index') }}" wire:navigate class="bg-white p-5 rounded-lg border border-gray-200 hover:border-indigo-300">
             <p class="text-xs text-gray-500">Teachers</p>
             <p class="text-2xl font-semibold text-gray-900 mt-1">{{ $counts['teachers'] }}</p>
-        </div>
+        </a>
         <a href="{{ route('admin.classes.index') }}" wire:navigate class="bg-white p-5 rounded-lg border border-gray-200 hover:border-indigo-300">
             <p class="text-xs text-gray-500">Classes</p>
             <p class="text-2xl font-semibold text-gray-900 mt-1">{{ $counts['classes'] }}</p>
