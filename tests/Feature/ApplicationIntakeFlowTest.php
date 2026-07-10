@@ -155,4 +155,40 @@ class ApplicationIntakeFlowTest extends TestCase
         $this->assertSame('pending', $studentApplication->fresh()->status->value);
         $review->assertSet('decisionError', fn ($value) => str_contains($value, 'Missing required documents'));
     }
+
+    public function test_approval_is_blocked_when_the_assigned_class_is_full(): void
+    {
+        $this->class->update(['capacity' => 0]);
+
+        $application = Livewire::actingAs($this->registrar)
+            ->test(ApplicationCreate::class)
+            ->set('first_name', 'Full')
+            ->set('last_name', 'Class')
+            ->set('dob', '2015-05-01')
+            ->set('gender', 'female')
+            ->set('guardians.0.name', 'G')
+            ->set('guardians.0.relationship', 'Father')
+            ->set('guardians.0.phone', '055')
+            ->call('save');
+
+        $studentApplication = StudentApplication::where('first_name', 'Full')->firstOrFail();
+
+        $birthCertType = DocumentType::where('key', 'birth_certificate')->first();
+        $passportPhotoType = DocumentType::where('key', 'passport_photo')->first();
+
+        $show = Livewire::actingAs($this->registrar)
+            ->test(ApplicationShow::class, ['application' => $studentApplication]);
+        $show->set("uploads.{$birthCertType->id}", UploadedFile::fake()->create('cert.pdf', 100, 'application/pdf'))
+            ->call('uploadDocument', $birthCertType->id);
+        $show->set("uploads.{$passportPhotoType->id}", UploadedFile::fake()->image('photo.jpg'))
+            ->call('uploadDocument', $passportPhotoType->id);
+
+        $review = Livewire::actingAs($this->admin)
+            ->test(ApplicationReviewShow::class, ['application' => $studentApplication->fresh()]);
+
+        $review->set('class_id', (string) $this->class->id)->call('approve');
+
+        $this->assertSame('pending', $studentApplication->fresh()->status->value);
+        $review->assertSet('decisionError', fn ($value) => str_contains($value, 'full capacity'));
+    }
 }

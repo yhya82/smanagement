@@ -1,17 +1,25 @@
 <div class="max-w-2xl">
     <div class="flex items-center justify-between mb-6">
-        <h1 class="text-xl font-semibold text-gray-900">Import Students</h1>
-        <a href="{{ 'data:text/csv;charset=utf-8,' . rawurlencode(implode(',', \App\Services\StudentImportService::EXPECTED_HEADER) . "\n" . 'Jane,Doe,2015-05-01,female,Primary 1,John Doe,Father,0551234567') }}"
-            download="student-import-template.csv"
-            class="text-sm text-indigo-600 hover:text-indigo-500">
-            Download CSV template
-        </a>
+        <h1 class="text-xl font-semibold text-gray-900">Import Students to {{ $class->name }}</h1>
+        <div class="flex items-center gap-4">
+            <a href="{{ 'data:text/csv;charset=utf-8,' . rawurlencode(implode(',', \App\Services\StudentImportService::EXPECTED_HEADER) . "\n" . 'Jane,Doe,2015-05-01,female,John Doe,Father,0551234567') }}"
+                download="student-import-template.csv"
+                class="text-sm text-indigo-600 hover:text-indigo-500">
+                Download CSV template
+            </a>
+            <a href="{{ route('admin.classes.add-student', $class) }}" wire:navigate class="text-sm text-indigo-600 hover:text-indigo-500">Add one student instead</a>
+            <a href="{{ route('admin.classes.index') }}" wire:navigate class="text-sm text-gray-500 hover:text-gray-700">Back to classes</a>
+        </div>
+    </div>
+
+    <div class="mb-4 text-sm text-gray-600">
+        {{ $class->students()->count() }}{{ $class->capacity ? '/'.$class->capacity.' enrolled' : ' enrolled (no capacity limit)' }}
     </div>
 
     <div class="bg-white p-6 rounded-lg border border-gray-200 space-y-4">
         <p class="text-sm text-gray-600">
             Upload a CSV with the columns: <code class="text-xs bg-gray-100 px-1 py-0.5 rounded">{{ implode(', ', \App\Services\StudentImportService::EXPECTED_HEADER) }}</code>.
-            Each row creates one student, one guardian, and enrolls them into the named class (which must already exist).
+            Each row creates one student and one guardian, and enrolls them into {{ $class->name }}.
         </p>
 
         @if ($importError)

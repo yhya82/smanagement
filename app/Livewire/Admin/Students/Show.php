@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use RuntimeException;
 
 #[Layout('components.app-layout')]
 class Show extends Component
@@ -28,6 +29,8 @@ class Show extends Component
     public string $emergencyNotes = '';
 
     public bool $isConfidential = false;
+
+    public ?string $transferError = null;
 
     public function mount(Student $student): void
     {
@@ -53,26 +56,38 @@ class Show extends Component
     {
         $this->authorize('update', $this->student);
 
+        $this->transferError = null;
+
         $this->validate(['newClassId' => ['required', 'exists:classes,id']]);
 
-        DB::transaction(function () {
-            $newClass = SchoolClass::findOrFail($this->newClassId);
+        try {
+            DB::transaction(function () {
+                $newClass = SchoolClass::findOrFail($this->newClassId);
 
-            Enrollment::where('student_id', $this->student->id)
-                ->where('status', EnrollmentStatus::Active)
-                ->update(['status' => EnrollmentStatus::Transferred, 'exit_date' => now()]);
+                if (! $newClass->hasCapacityFor()) {
+                    throw new RuntimeException("'{$newClass->name}' is at full capacity.");
+                }
 
-            $this->student->update(['current_class_id' => $newClass->id]);
+                Enrollment::where('student_id', $this->student->id)
+                    ->where('status', EnrollmentStatus::Active)
+                    ->update(['status' => EnrollmentStatus::Transferred, 'exit_date' => now()]);
 
-            Enrollment::create([
-                'student_id' => $this->student->id,
-                'class_id' => $newClass->id,
-                'academic_year_id' => $newClass->academic_year_id,
-                'enrollment_date' => now(),
-                'status' => EnrollmentStatus::Active,
-                'source' => EnrollmentSource::Individual,
-            ]);
-        });
+                $this->student->update(['current_class_id' => $newClass->id]);
+
+                Enrollment::create([
+                    'student_id' => $this->student->id,
+                    'class_id' => $newClass->id,
+                    'academic_year_id' => $newClass->academic_year_id,
+                    'enrollment_date' => now(),
+                    'status' => EnrollmentStatus::Active,
+                    'source' => EnrollmentSource::Individual,
+                ]);
+            });
+        } catch (RuntimeException $e) {
+            $this->transferError = $e->getMessage();
+
+            return;
+        }
 
         $this->reset('newClassId');
         $this->student->refresh();

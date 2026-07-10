@@ -71,6 +71,11 @@
 
     <section class="bg-white p-6 rounded-lg border border-gray-200 space-y-4">
         <h2 class="text-sm font-medium text-gray-900">Transfer class</h2>
+        @if ($transferError)
+            <div class="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+                {{ $transferError }}
+            </div>
+        @endif
         <div class="flex items-end gap-3">
             <div class="flex-1">
                 <select wire:model="newClassId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">

@@ -52,6 +52,22 @@ class SchoolClass extends Model
         return $this->hasMany(Student::class, 'current_class_id');
     }
 
+    /**
+     * Null capacity means unlimited. Locks the count within the caller's
+     * transaction so concurrent enrollments can't both pass the check and
+     * jointly overshoot the limit.
+     */
+    public function hasCapacityFor(int $additional = 1): bool
+    {
+        if ($this->capacity === null) {
+            return true;
+        }
+
+        $currentCount = $this->students()->lockForUpdate()->count();
+
+        return $currentCount + $additional <= $this->capacity;
+    }
+
     public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class, 'class_id');

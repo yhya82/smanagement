@@ -17,26 +17,32 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use RuntimeException;
 
 /**
- * SRS §15: "Individual enrollment and spreadsheet import (admin only).
- * Spreadsheet columns must match templates and pass validation." Bulk-
- * imported students skip the Registrar-application/document workflow
- * entirely - admin control over the import IS the approval, matching how
- * the SRS frames import as a separate mechanism from individual enrollment,
- * not a bulk version of the application queue.
+ * SRS §15: "Individual enrollment and spreadsheet import (admin only)."
+ * Both live on the class page, scoped to one class at a time, so both the
+ * single-student form and each row of a bulk import funnel through
+ * enrollStudent() to share creation logic and the capacity check. Bulk-
+ * imported/individually-enrolled students skip the Registrar-application/
+ * document workflow entirely - admin control over the action IS the
+ * approval, matching how the SRS frames these as separate from the
+ * application queue.
  */
 class StudentImportService
 {
     public const EXPECTED_HEADER = [
-        'first_name', 'last_name', 'dob', 'gender', 'class_name',
+        'first_name', 'last_name', 'dob', 'gender',
         'guardian_name', 'guardian_relationship', 'guardian_phone',
     ];
 
     /**
+     * The target class is fixed by the page the admin is on, not a per-row
+     * CSV column - every row in the file enrolls into $class.
+     *
      * @return array{created: int, errors: list<array{row: int, messages: list<string>}>}
      */
-    public function import(string $filePath): array
+    public function import(string $filePath, SchoolClass $class): array
     {
         $handle = fopen($filePath, 'r');
 
@@ -57,9 +63,16 @@ class StudentImportService
         $created = 0;
         $errors = [];
         $rowNumber = 1;
+        $capacityReached = false;
 
         while (($row = fgetcsv($handle)) !== false) {
             $rowNumber++;
+
+            if ($capacityReached) {
+                $errors[] = ['row' => $rowNumber, 'messages' => ["Skipped: '{$class->name}' reached full capacity."]];
+
+                continue;
+            }
 
             if (count($row) !== count(self::EXPECTED_HEADER)) {
                 $errors[] = ['row' => $rowNumber, 'messages' => ['Wrong number of columns.']];
@@ -74,7 +87,6 @@ class StudentImportService
                 'last_name' => ['required', 'string', 'max:255'],
                 'dob' => ['required', 'date'],
                 'gender' => ['required', 'in:male,female,other'],
-                'class_name' => ['required', 'string'],
                 'guardian_name' => ['required', 'string', 'max:255'],
                 'guardian_relationship' => ['required', 'string', 'max:255'],
                 'guardian_phone' => ['required', 'string', 'max:50'],
@@ -86,16 +98,13 @@ class StudentImportService
                 continue;
             }
 
-            $class = SchoolClass::where('name', $data['class_name'])->first();
-
-            if (! $class) {
-                $errors[] = ['row' => $rowNumber, 'messages' => ["Class '{$data['class_name']}' not found."]];
-
-                continue;
+            try {
+                $this->enrollStudent($data, $class);
+                $created++;
+            } catch (RuntimeException $e) {
+                $errors[] = ['row' => $rowNumber, 'messages' => [$e->getMessage()]];
+                $capacityReached = true;
             }
-
-            $this->createStudent($data, $class);
-            $created++;
         }
 
         fclose($handle);
@@ -103,9 +112,19 @@ class StudentImportService
         return ['created' => $created, 'errors' => $errors];
     }
 
-    private function createStudent(array $data, SchoolClass $class): void
+    /**
+     * Creates one student, one primary guardian, and an active enrollment
+     * directly into $class - used for both single "add student" submissions
+     * and each row of a bulk import. Skips the application/document
+     * workflow entirely (SRS §15's "individual enrollment" path).
+     */
+    public function enrollStudent(array $data, SchoolClass $class): Student
     {
-        DB::transaction(function () use ($data, $class) {
+        return DB::transaction(function () use ($data, $class) {
+            if (! $class->hasCapacityFor()) {
+                throw new RuntimeException("'{$class->name}' is at full capacity.");
+            }
+
             $studentNo = $this->generateStudentNumber();
 
             $host = parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost';
@@ -131,7 +150,7 @@ class StudentImportService
                 'current_class_id' => $class->id,
             ]);
 
-            // No student_application exists for a bulk-imported student -
+            // No student_application exists for a directly-enrolled student -
             // the guardian attaches directly to the student instead (schema
             // migration 2026_07_10_130001 made student_application_id
             // nullable for exactly this case).
@@ -151,6 +170,8 @@ class StudentImportService
                 'status' => EnrollmentStatus::Active,
                 'source' => EnrollmentSource::Import,
             ]);
+
+            return $student;
         });
     }
 

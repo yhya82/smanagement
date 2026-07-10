@@ -97,6 +97,19 @@ class StudentManagementTest extends TestCase
         );
     }
 
+    public function test_admin_cannot_transfer_a_student_into_a_full_class(): void
+    {
+        $this->classB->update(['capacity' => 0]);
+
+        Livewire::actingAs($this->admin)
+            ->test(StudentsShow::class, ['student' => $this->student])
+            ->set('newClassId', (string) $this->classB->id)
+            ->call('transfer')
+            ->assertSet('transferError', fn ($value) => str_contains($value, 'full capacity'));
+
+        $this->assertSame($this->classA->id, $this->student->fresh()->current_class_id);
+    }
+
     public function test_admin_can_change_a_students_status(): void
     {
         Livewire::actingAs($this->admin)

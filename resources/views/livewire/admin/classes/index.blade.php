@@ -54,24 +54,40 @@
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Name</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Grade level</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Academic year</th>
-                    <th class="px-4 py-2 text-left font-medium text-gray-500">Students</th>
+                    <th class="px-4 py-2 text-left font-medium text-gray-500">Capacity</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Subjects</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
                 @forelse ($classes as $class)
+                    @php $isFull = $class->capacity !== null && $class->students_count >= $class->capacity; @endphp
                     <tr wire:key="class-{{ $class->id }}">
                         <td class="px-4 py-2 font-medium">{{ $class->name }}</td>
                         <td class="px-4 py-2 text-gray-500">{{ $class->gradeLevel->name }}</td>
                         <td class="px-4 py-2 text-gray-500">{{ $class->academicYear->name }}</td>
-                        <td class="px-4 py-2 text-gray-500">
-                            {{ $class->students_count }}{{ $class->capacity ? '/'.$class->capacity : '' }}
+                        <td class="px-4 py-2">
+                            <span @class([
+                                'inline-flex px-2 py-0.5 rounded-full text-xs font-medium',
+                                'bg-red-100 text-red-800' => $isFull,
+                                'bg-gray-100 text-gray-600' => ! $isFull,
+                            ])>
+                                {{ $class->students_count }}{{ $class->capacity ? '/'.$class->capacity : '' }}
+                            </span>
+                            @if ($isFull)
+                                <span class="text-xs text-red-600 ml-1">Full</span>
+                            @endif
                         </td>
                         <td class="px-4 py-2 text-gray-500">{{ $class->class_subjects_count }}</td>
-                        <td class="px-4 py-2 text-right">
+                        <td class="px-4 py-2 text-right whitespace-nowrap">
                             <a href="{{ route('admin.classes.subjects', $class) }}" wire:navigate
-                                class="text-xs text-indigo-600 hover:text-indigo-500">Manage subjects</a>
+                                class="text-xs text-indigo-600 hover:text-indigo-500">Subjects</a>
+                            <span class="text-gray-300 mx-1">|</span>
+                            <a href="{{ route('admin.classes.add-student', $class) }}" wire:navigate
+                                class="text-xs text-indigo-600 hover:text-indigo-500">Add student</a>
+                            <span class="text-gray-300 mx-1">|</span>
+                            <a href="{{ route('admin.classes.import', $class) }}" wire:navigate
+                                class="text-xs text-indigo-600 hover:text-indigo-500">Import</a>
                         </td>
                     </tr>
                 @empty

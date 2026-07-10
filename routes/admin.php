@@ -4,12 +4,13 @@ use App\Livewire\Admin\AcademicYears\Index as AcademicYearsIndex;
 use App\Livewire\Admin\ApplicationReviewIndex;
 use App\Livewire\Admin\ApplicationReviewShow;
 use App\Livewire\Admin\AuditLogs\Index as AuditLogsIndex;
+use App\Livewire\Admin\Classes\AddStudent as ClassAddStudent;
+use App\Livewire\Admin\Classes\Import as ClassImport;
 use App\Livewire\Admin\Classes\Index as ClassesIndex;
 use App\Livewire\Admin\Classes\Subjects as ClassSubjects;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\GradeLevels\Index as GradeLevelsIndex;
 use App\Livewire\Admin\GradeReviewIndex;
-use App\Livewire\Admin\Students\Import as StudentsImport;
 use App\Livewire\Admin\Students\Index as StudentsIndex;
 use App\Livewire\Admin\Students\Show as StudentsShow;
 use App\Livewire\Admin\Subjects\Index as SubjectsIndex;
@@ -29,6 +30,8 @@ Route::middleware(['auth', 'role:Administrator'])->prefix('admin')->name('admin.
     Route::get('subjects', SubjectsIndex::class)->name('subjects.index');
     Route::get('classes', ClassesIndex::class)->name('classes.index');
     Route::get('classes/{class}/subjects', ClassSubjects::class)->name('classes.subjects');
+    Route::get('classes/{class}/add-student', ClassAddStudent::class)->name('classes.add-student');
+    Route::get('classes/{class}/import', ClassImport::class)->name('classes.import');
 
     Route::get('teachers', TeachersIndex::class)->name('teachers.index');
     Route::get('teachers/{teacher}', TeachersShow::class)->name('teachers.show');
@@ -36,7 +39,6 @@ Route::middleware(['auth', 'role:Administrator'])->prefix('admin')->name('admin.
     Route::get('grade-review', GradeReviewIndex::class)->name('grade-review.index');
 
     Route::get('students', StudentsIndex::class)->name('students.index');
-    Route::get('students/import', StudentsImport::class)->name('students.import');
     Route::get('students/{student}', StudentsShow::class)->name('students.show');
 
     Route::get('audit-log', AuditLogsIndex::class)->name('audit-log.index');

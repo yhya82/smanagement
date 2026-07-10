@@ -145,6 +145,10 @@ class AdmissionService
         }
 
         return DB::transaction(function () use ($application, $assignedClass, $approvedBy) {
+            if (! $assignedClass->hasCapacityFor()) {
+                throw new RuntimeException("'{$assignedClass->name}' is at full capacity.");
+            }
+
             $studentNo = $this->generateStudentNumber();
 
             // No personal email is collected at application time (unrealistic
