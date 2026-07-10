@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $title ?? 'School Management' }}</title>
+    <title>{{ $title ?? \App\Models\SchoolSetting::current()->name }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
@@ -12,6 +12,7 @@
         @php
             $currentUser = auth()->user();
             $unreadCount = $currentUser->notifications()->where('is_read', false)->count();
+            $schoolSetting = \App\Models\SchoolSetting::current();
         @endphp
 
         {{-- Mobile overlay --}}
@@ -22,8 +23,13 @@
         <aside
             :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
             class="fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 flex flex-col transform transition-transform duration-200 ease-in-out md:translate-x-0">
-            <div class="h-14 flex items-center px-4 border-b border-gray-200 shrink-0">
-                <a href="{{ route('dashboard') }}" wire:navigate class="font-semibold text-gray-900 truncate">School Management</a>
+            <div class="h-14 flex items-center gap-2 px-4 border-b border-gray-200 shrink-0">
+                <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-2 min-w-0">
+                    @if ($schoolSetting->logoUrl())
+                        <img src="{{ $schoolSetting->logoUrl() }}" class="w-7 h-7 rounded object-cover shrink-0" alt="">
+                    @endif
+                    <span class="font-semibold text-gray-900 truncate">{{ $schoolSetting->name }}</span>
+                </a>
             </div>
 
             <nav class="flex-1 overflow-y-auto px-2 py-4 space-y-1">
@@ -42,6 +48,7 @@
                     <x-nav-link :href="route('admin.audit-log.index')" :active="request()->routeIs('admin.audit-log.*')" icon="clipboard-list">Audit Log</x-nav-link>
                     <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')" icon="identification">Users</x-nav-link>
                     <x-nav-link :href="route('admin.roles.index')" :active="request()->routeIs('admin.roles.*')" icon="key">Roles</x-nav-link>
+                    <x-nav-link :href="route('admin.settings.edit')" :active="request()->routeIs('admin.settings.*')" icon="cog">Settings</x-nav-link>
 
                     @php
                         $academicRoutes = ['admin.academic-years.*', 'admin.terms.*', 'admin.grade-levels.*', 'admin.subjects.*', 'admin.classes.*'];

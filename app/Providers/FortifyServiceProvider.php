@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
 use App\Enums\UserStatus;
+use App\Models\SchoolSetting;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -34,7 +35,7 @@ class FortifyServiceProvider extends ServiceProvider
         // app's own admin flows, not Fortify's public register/reset routes.
         Fortify::updateUserProfileInformationUsing(UpdateUserProfileInformation::class);
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
-        Fortify::loginView(fn () => view('auth.login'));
+        Fortify::loginView(fn () => view('auth.login', ['schoolSetting' => SchoolSetting::current()]));
 
         // SRS §4: "Only active users may log in" - Fortify's default
         // credential check knows nothing about our custom status column,

@@ -13,6 +13,7 @@ use App\Livewire\Admin\GradeLevels\Index as GradeLevelsIndex;
 use App\Livewire\Admin\GradeReviewIndex;
 use App\Livewire\Admin\Roles\Index as RolesIndex;
 use App\Livewire\Admin\Roles\Show as RolesShow;
+use App\Livewire\Admin\Settings\Edit as SettingsEdit;
 use App\Livewire\Admin\Students\Index as StudentsIndex;
 use App\Livewire\Admin\Students\Show as StudentsShow;
 use App\Livewire\Admin\Subjects\Index as SubjectsIndex;
@@ -54,4 +55,6 @@ Route::middleware(['auth', 'role:Administrator'])->prefix('admin')->name('admin.
 
     Route::get('roles', RolesIndex::class)->name('roles.index');
     Route::get('roles/{role}', RolesShow::class)->name('roles.show');
+
+    Route::get('settings', SettingsEdit::class)->name('settings.edit');
 });

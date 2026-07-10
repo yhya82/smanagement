@@ -72,6 +72,17 @@ return [
             'report' => false,
         ],
 
+        // The school's own logo, shown in the sidebar and login page -
+        // public visibility, same reasoning as avatars.
+        'school-logo' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/school-logo'),
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage/school-logo',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
         // Admission documents (birth certificate, passport photo originals).
         // Deliberately NOT on the public disk: these contain sensitive PII
         // and must only ever be reachable through an authenticated,

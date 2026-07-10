@@ -3,12 +3,17 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Log in - School Management</title>
+    <title>Log in - {{ $schoolSetting->name }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-gray-50 flex items-center justify-center">
     <div class="w-full max-w-sm bg-white p-8 rounded-lg shadow-sm border border-gray-200">
-        <h1 class="text-lg font-semibold text-gray-900 mb-6">School Management</h1>
+        <div class="flex items-center gap-2 mb-6">
+            @if ($schoolSetting->logoUrl())
+                <img src="{{ $schoolSetting->logoUrl() }}" class="w-8 h-8 rounded object-cover shrink-0" alt="">
+            @endif
+            <h1 class="text-lg font-semibold text-gray-900">{{ $schoolSetting->name }}</h1>
+        </div>
 
         @if ($errors->any())
             <div class="mb-4 rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">
