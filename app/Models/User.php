@@ -9,11 +9,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory;
+    use HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -72,6 +73,14 @@ class User extends Authenticatable
         return $this->hasOne(Student::class);
     }
 
+    /**
+     * Overrides Notifiable's own notifications() (which assumes Laravel's
+     * default polymorphic notifications table) - we want ->notify() and its
+     * via()/channel extensibility, but our notifications table is the
+     * simpler user_id-FK shape from the schema review, not Laravel's
+     * default. A class-defined method always wins over one from a trait,
+     * so this is a deliberate override, not a naming collision.
+     */
     public function notifications(): HasMany
     {
         return $this->hasMany(Notification::class);

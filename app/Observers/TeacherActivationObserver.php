@@ -4,11 +4,14 @@ namespace App\Observers;
 
 use App\Enums\TeacherStatus;
 use App\Models\TeacherSubjectAssignment;
+use App\Notifications\SubjectAssigned;
 
 /**
  * SRS §12: teachers become active after at least one subject assignment.
  * Flips the moment the first teacher_subject_assignments row is created,
- * rather than requiring a separate manual activation step.
+ * rather than requiring a separate manual activation step. Also notifies
+ * the teacher of every new assignment (SRS §19: "assignments"), not just
+ * the first one that activates them.
  */
 class TeacherActivationObserver
 {
@@ -19,5 +22,7 @@ class TeacherActivationObserver
         if ($teacher->status === TeacherStatus::Pending) {
             $teacher->update(['status' => TeacherStatus::Active]);
         }
+
+        $teacher->user->notify(new SubjectAssigned($assignment));
     }
 }

@@ -8,7 +8,6 @@ use App\Enums\EnrollmentStatus;
 use App\Enums\PromotionCriteriaType;
 use App\Enums\StudentStatus;
 use App\Models\Enrollment;
-use App\Models\Notification;
 use App\Models\Promotion;
 use App\Models\PromotionRule;
 use App\Models\SchoolClass;
@@ -16,6 +15,7 @@ use App\Models\Student;
 use App\Models\Term;
 use App\Models\TermRanking;
 use App\Models\User;
+use App\Notifications\StudentPromoted;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -122,12 +122,7 @@ class PromotionService
                 'source' => EnrollmentSource::Individual,
             ]);
 
-            Notification::create([
-                'user_id' => $student->user_id,
-                'type' => 'promotion_approved',
-                'title' => 'Promotion approved',
-                'message' => "You have been promoted to {$toClass->name}.",
-            ]);
+            $student->user->notify(new StudentPromoted($promotion));
 
             return $student;
         });

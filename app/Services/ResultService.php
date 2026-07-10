@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Enums\ResultStatus;
-use App\Models\Notification;
 use App\Models\ResultEntry;
 use App\Models\SchoolClass;
 use App\Models\Student;
@@ -11,6 +10,7 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\Term;
 use App\Models\User;
+use App\Notifications\ResultApproved;
 use RuntimeException;
 
 class ResultService
@@ -68,12 +68,7 @@ class ResultService
             'approved_at' => now(),
         ]);
 
-        Notification::create([
-            'user_id' => $entry->student->user_id,
-            'type' => 'result_approved',
-            'title' => 'Result approved',
-            'message' => "Your result for {$entry->subject->name} has been approved.",
-        ]);
+        $entry->student->user->notify(new ResultApproved($entry));
 
         return $entry;
     }

@@ -11,11 +11,12 @@ use App\Models\ApplicationDocument;
 use App\Models\AuditLog;
 use App\Models\DocumentType;
 use App\Models\Enrollment;
-use App\Models\Notification;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\StudentApplication;
 use App\Models\User;
+use App\Notifications\ApplicationDecided;
+use App\Notifications\ApplicationSubmitted;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -47,6 +48,8 @@ class AdmissionService
             foreach ($guardians as $guardian) {
                 $application->guardians()->create($guardian);
             }
+
+            $this->notifyApprovers($application);
 
             return $application->load('guardians');
         });
@@ -194,12 +197,7 @@ class AdmissionService
 
             $this->copyPassportPhotoToAvatar($application, $user);
 
-            Notification::create([
-                'user_id' => $application->submitted_by,
-                'type' => 'application_approved',
-                'title' => 'Application approved',
-                'message' => "{$student->first_name} {$student->last_name}'s application has been approved.",
-            ]);
+            $application->submittedBy->notify(new ApplicationDecided($application));
 
             return $student;
         });
@@ -222,14 +220,26 @@ class AdmissionService
             'rejection_reason' => $reason,
         ]);
 
-        Notification::create([
-            'user_id' => $application->submitted_by,
-            'type' => 'application_rejected',
-            'title' => 'Application rejected',
-            'message' => "{$application->first_name} {$application->last_name}'s application was rejected: {$reason}",
-        ]);
+        $application->submittedBy->notify(new ApplicationDecided($application));
 
         return $application;
+    }
+
+    /**
+     * SRS §19 wants applications surfaced to whoever can act on them, not
+     * hardcoded to a specific role name - notifies every user holding
+     * applications.approve, however that's configured.
+     */
+    private function notifyApprovers(StudentApplication $application): void
+    {
+        $approvers = User::whereHas(
+            'roles.permissions',
+            fn ($query) => $query->where('key', 'applications.approve')
+        )->get();
+
+        foreach ($approvers as $approver) {
+            $approver->notify(new ApplicationSubmitted($application));
+        }
     }
 
     /**
