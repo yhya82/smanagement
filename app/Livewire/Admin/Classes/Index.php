@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Admin\Classes;
 
+use App\Enums\TeacherStatus;
 use App\Models\AcademicYear;
 use App\Models\GradeLevel;
 use App\Models\SchoolClass;
+use App\Models\Teacher;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -53,15 +55,34 @@ class Index extends Component
         $this->academic_year_id = $activeYearId;
     }
 
+    /**
+     * "Class teacher" (homeroom) is distinct from a TeacherSubjectAssignment
+     * ("class to teach" - a specific subject taught to a class): this is
+     * classes.homeroom_teacher_id, which had a column, FK, and model relation
+     * already in the schema but no UI anywhere to ever set it.
+     */
+    public function assignClassTeacher(int $classId, string $teacherId): void
+    {
+        $class = SchoolClass::findOrFail($classId);
+
+        $this->authorize('update', $class);
+
+        $class->update(['homeroom_teacher_id' => $teacherId !== '' ? $teacherId : null]);
+    }
+
     public function render()
     {
         return view('livewire.admin.classes.index', [
-            'classes' => SchoolClass::with(['gradeLevel', 'academicYear'])
+            'classes' => SchoolClass::with(['gradeLevel', 'academicYear', 'homeroomTeacher.user'])
                 ->withCount(['students', 'classSubjects'])
                 ->latest()
                 ->get(),
             'gradeLevels' => GradeLevel::orderBy('sort_order')->get(),
             'academicYears' => AcademicYear::orderBy('name')->get(),
+            'teachers' => Teacher::with('user')
+                ->where('status', TeacherStatus::Active)
+                ->get()
+                ->sortBy(fn ($teacher) => $teacher->user->name),
         ]);
     }
 }

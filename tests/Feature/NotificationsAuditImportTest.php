@@ -88,6 +88,27 @@ class NotificationsAuditImportTest extends TestCase
             ->assertDontSee('Test #2');
     }
 
+    public function test_audit_log_shows_a_readable_before_after_diff_not_raw_json(): void
+    {
+        AuditLog::create([
+            'action' => 'status_changed',
+            'auditable_type' => 'Test',
+            'auditable_id' => 3,
+            'old_values' => ['status' => 'pending'],
+            'new_values' => ['status' => 'approved'],
+        ]);
+
+        $html = Livewire::actingAs($this->admin)
+            ->test(AuditLogsIndex::class)
+            ->assertSee('status')
+            ->assertSee('pending')
+            ->assertSee('approved')
+            ->html();
+
+        $this->assertStringNotContainsString('{&quot;status&quot;', $html);
+        $this->assertStringNotContainsString('{"status"', $html);
+    }
+
     public function test_admin_can_bulk_import_students_into_a_class(): void
     {
         $class = $this->makeClass();

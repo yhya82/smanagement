@@ -15,6 +15,7 @@ use App\Models\GradeLevel;
 use App\Models\Role;
 use App\Models\SchoolClass;
 use App\Models\Subject;
+use App\Models\Teacher;
 use App\Models\Term;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -157,5 +158,41 @@ class AcademicStructureTest extends TestCase
 
         $component->call('remove', $assignment->id);
         $this->assertSame(0, ClassSubject::where('class_id', $class->id)->count());
+    }
+
+    public function test_admin_can_assign_and_clear_a_class_teacher(): void
+    {
+        $gradeLevel = GradeLevel::create(['name' => 'Primary 1', 'sort_order' => 1]);
+        $year = AcademicYear::create(['name' => '2026/2027', 'start_date' => '2026-09-01', 'end_date' => '2027-07-31', 'is_active' => true]);
+        $class = SchoolClass::create(['grade_level_id' => $gradeLevel->id, 'academic_year_id' => $year->id, 'name' => 'Blue Stream']);
+
+        $teacherUser = User::factory()->create(['status' => UserStatus::Active]);
+        $teacher = Teacher::create(['user_id' => $teacherUser->id, 'employee_no' => 'T1', 'status' => 'active', 'hire_date' => '2020-01-01']);
+
+        $component = Livewire::actingAs($this->admin)->test(ClassesIndex::class);
+
+        $component->call('assignClassTeacher', $class->id, (string) $teacher->id);
+        $this->assertSame($teacher->id, $class->fresh()->homeroom_teacher_id);
+
+        $component->call('assignClassTeacher', $class->id, '');
+        $this->assertNull($class->fresh()->homeroom_teacher_id);
+    }
+
+    public function test_only_active_teachers_are_offered_as_class_teacher(): void
+    {
+        $gradeLevel = GradeLevel::create(['name' => 'Primary 1', 'sort_order' => 1]);
+        $year = AcademicYear::create(['name' => '2026/2027', 'start_date' => '2026-09-01', 'end_date' => '2027-07-31', 'is_active' => true]);
+        SchoolClass::create(['grade_level_id' => $gradeLevel->id, 'academic_year_id' => $year->id, 'name' => 'Blue Stream']);
+
+        $activeUser = User::factory()->create(['name' => 'Active Teacher', 'status' => UserStatus::Active]);
+        Teacher::create(['user_id' => $activeUser->id, 'employee_no' => 'T1', 'status' => 'active', 'hire_date' => '2020-01-01']);
+
+        $pendingUser = User::factory()->create(['name' => 'Pending Teacher', 'status' => UserStatus::Active]);
+        Teacher::create(['user_id' => $pendingUser->id, 'employee_no' => 'T2', 'status' => 'pending', 'hire_date' => '2020-01-01']);
+
+        Livewire::actingAs($this->admin)
+            ->test(ClassesIndex::class)
+            ->assertSee('Active Teacher')
+            ->assertDontSee('Pending Teacher');
     }
 }

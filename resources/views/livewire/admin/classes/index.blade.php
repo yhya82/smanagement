@@ -56,6 +56,7 @@
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Academic year</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Capacity</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Subjects</th>
+                    <th class="px-4 py-2 text-left font-medium text-gray-500">Class teacher</th>
                     <th></th>
                 </tr>
             </thead>
@@ -79,6 +80,17 @@
                             @endif
                         </td>
                         <td class="px-4 py-2 text-gray-500">{{ $class->class_subjects_count }}</td>
+                        <td class="px-4 py-2">
+                            <select wire:change="assignClassTeacher({{ $class->id }}, $event.target.value)"
+                                class="text-xs rounded-md border-gray-300 shadow-sm">
+                                <option value="">No class teacher</option>
+                                @foreach ($teachers as $teacher)
+                                    <option value="{{ $teacher->id }}" @selected($class->homeroom_teacher_id === $teacher->id)>
+                                        {{ $teacher->user->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </td>
                         <td class="px-4 py-2 text-right whitespace-nowrap">
                             <a href="{{ route('admin.classes.subjects', $class) }}" wire:navigate
                                 class="text-xs text-indigo-600 hover:text-indigo-500">Subjects</a>
@@ -92,7 +104,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-6 text-center text-gray-500">No classes yet.</td>
+                        <td colspan="7" class="px-4 py-6 text-center text-gray-500">No classes yet.</td>
                     </tr>
                 @endforelse
             </tbody>

@@ -37,18 +37,40 @@
                         </td>
                     </tr>
                     @if ($log->old_values || $log->new_values)
+                        @php
+                            $changedFields = collect(array_keys((array) $log->old_values))
+                                ->merge(array_keys((array) $log->new_values))
+                                ->unique()
+                                ->values();
+
+                            $formatValue = function ($value) {
+                                if ($value === null) {
+                                    return '—';
+                                }
+
+                                return is_scalar($value) ? (string) $value : json_encode($value);
+                            };
+                        @endphp
                         <tr x-show="open" x-cloak wire:key="log-{{ $log->id }}-details">
-                            <td colspan="5" class="px-4 py-3 bg-gray-50 text-xs font-mono">
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p class="text-gray-500 mb-1">Before</p>
-                                        <pre class="whitespace-pre-wrap">{{ json_encode($log->old_values, JSON_PRETTY_PRINT) }}</pre>
-                                    </div>
-                                    <div>
-                                        <p class="text-gray-500 mb-1">After</p>
-                                        <pre class="whitespace-pre-wrap">{{ json_encode($log->new_values, JSON_PRETTY_PRINT) }}</pre>
-                                    </div>
-                                </div>
+                            <td colspan="5" class="px-4 py-3 bg-gray-50 text-xs">
+                                <table class="w-full">
+                                    <thead>
+                                        <tr class="text-gray-500">
+                                            <th class="text-left font-medium pr-4 py-1">Field</th>
+                                            <th class="text-left font-medium pr-4 py-1">Before</th>
+                                            <th class="text-left font-medium py-1">After</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($changedFields as $field)
+                                            <tr>
+                                                <td class="pr-4 py-1 font-medium text-gray-700">{{ $field }}</td>
+                                                <td class="pr-4 py-1 text-gray-600">{{ $formatValue(data_get($log->old_values, $field)) }}</td>
+                                                <td class="py-1 text-gray-900">{{ $formatValue(data_get($log->new_values, $field)) }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
                             </td>
                         </tr>
                     @endif
