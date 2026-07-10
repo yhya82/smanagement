@@ -17,8 +17,15 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            // Single source of truth for every actor's avatar (admin, registrar,
+            // teacher, student) - see schema review §2.1.
+            $table->string('profile_picture')->nullable();
+            $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->boolean('must_change_password')->default(true);
             $table->rememberToken();
             $table->timestamps();
+
+            $table->index('status');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
