@@ -3,6 +3,7 @@
 namespace App\Livewire\Teacher;
 
 use App\Enums\AttendanceStatus;
+use App\Models\AttendanceEditRequest;
 use App\Models\AttendanceRecord;
 use App\Models\SchoolClass;
 use App\Models\Student;
@@ -11,6 +12,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use RuntimeException;
 
 #[Layout('components.app-layout')]
 class Attendance extends Component
@@ -23,6 +25,14 @@ class Attendance extends Component
     public array $statuses = [];
 
     public ?string $statusMessage = null;
+
+    public ?int $editingStudentId = null;
+
+    public string $requestedStatus = '';
+
+    public string $reason = '';
+
+    public ?string $editRequestError = null;
 
     public function mount(SchoolClass $class): void
     {
@@ -43,7 +53,7 @@ class Attendance extends Component
     private function loadStatuses(): void
     {
         $existing = AttendanceRecord::where('class_id', $this->class->id)
-            ->where('date', $this->date)
+            ->whereDate('date', $this->date)
             ->pluck('status', 'student_id');
 
         $this->statuses = Student::where('current_class_id', $this->class->id)
@@ -59,7 +69,7 @@ class Attendance extends Component
         $teacher = Auth::user()->teacher;
 
         $existingRecords = AttendanceRecord::where('class_id', $this->class->id)
-            ->where('date', $this->date)
+            ->whereDate('date', $this->date)
             ->get()
             ->keyBy('student_id');
 
@@ -91,14 +101,68 @@ class Attendance extends Component
         $this->loadStatuses();
     }
 
+    public function openEditRequest(int $studentId): void
+    {
+        $this->authorize('create', [AttendanceEditRequest::class, $this->class->id]);
+
+        $this->editingStudentId = $studentId;
+        $this->requestedStatus = '';
+        $this->reason = '';
+        $this->editRequestError = null;
+    }
+
+    public function cancelEditRequest(): void
+    {
+        $this->editingStudentId = null;
+    }
+
+    public function submitEditRequest(AttendanceService $attendanceService): void
+    {
+        $this->authorize('create', [AttendanceEditRequest::class, $this->class->id]);
+
+        $this->editRequestError = null;
+
+        $this->validate([
+            'requestedStatus' => ['required', 'in:present,absent,late,excused'],
+            'reason' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $record = AttendanceRecord::where('class_id', $this->class->id)
+            ->whereDate('date', $this->date)
+            ->where('student_id', $this->editingStudentId)
+            ->firstOrFail();
+
+        try {
+            $attendanceService->requestEdit(
+                $record,
+                Auth::user(),
+                AttendanceStatus::from($this->requestedStatus),
+                $this->reason
+            );
+        } catch (RuntimeException $e) {
+            $this->editRequestError = $e->getMessage();
+
+            return;
+        }
+
+        $this->editingStudentId = null;
+        $this->statusMessage = 'Edit request submitted for admin approval.';
+    }
+
     public function render()
     {
+        $lockedRecords = AttendanceRecord::where('class_id', $this->class->id)
+            ->whereDate('date', $this->date)
+            ->whereNotNull('locked_at')
+            ->get()
+            ->keyBy('student_id');
+
         return view('livewire.teacher.attendance', [
             'students' => Student::where('current_class_id', $this->class->id)->orderBy('last_name')->get(),
-            'lockedStudentIds' => AttendanceRecord::where('class_id', $this->class->id)
-                ->where('date', $this->date)
-                ->whereNotNull('locked_at')
-                ->pluck('student_id')
+            'lockedRecords' => $lockedRecords,
+            'pendingEditRequestRecordIds' => AttendanceEditRequest::whereIn('attendance_id', $lockedRecords->pluck('id'))
+                ->where('status', 'pending')
+                ->pluck('attendance_id')
                 ->all(),
         ]);
     }

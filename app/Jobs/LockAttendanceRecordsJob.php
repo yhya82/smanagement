@@ -23,7 +23,7 @@ class LockAttendanceRecordsJob implements ShouldQueue
     {
         AttendanceRecord::query()
             ->whereNull('locked_at')
-            ->where('date', '<=', now()->subDays(7)->toDateString())
+            ->whereDate('date', '<=', now()->subDays(7)->toDateString())
             ->update(['locked_at' => now()]);
     }
 }

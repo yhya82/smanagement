@@ -44,6 +44,9 @@
                     <x-nav-link :href="route('admin.students.index')" :active="request()->routeIs('admin.students.*')" icon="users">Students</x-nav-link>
                     <x-nav-link :href="route('admin.applications.index')" :active="request()->routeIs('admin.applications.*')" icon="document-text">Application Review</x-nav-link>
                     <x-nav-link :href="route('admin.grade-review.index')" :active="request()->routeIs('admin.grade-review.*')" icon="academic-cap">Grade Review</x-nav-link>
+                    <x-nav-link :href="route('admin.rankings.index')" :active="request()->routeIs('admin.rankings.*')" icon="arrow-trending-up">Rankings</x-nav-link>
+                    <x-nav-link :href="route('admin.promotions.index')" :active="request()->routeIs('admin.promotions.*') || request()->routeIs('admin.promotion-rules.*')" icon="arrow-path">Promotions</x-nav-link>
+                    <x-nav-link :href="route('admin.attendance-edit-requests.index')" :active="request()->routeIs('admin.attendance-edit-requests.*')" icon="pencil-square">Attendance Edit Requests</x-nav-link>
                     <x-nav-link :href="route('admin.teachers.index')" :active="request()->routeIs('admin.teachers.*')" icon="user-group">Teachers</x-nav-link>
                     <x-nav-link :href="route('admin.audit-log.index')" :active="request()->routeIs('admin.audit-log.*')" icon="clipboard-list">Audit Log</x-nav-link>
                     <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')" icon="identification">Users</x-nav-link>

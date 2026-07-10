@@ -3,6 +3,7 @@
 use App\Livewire\Admin\AcademicYears\Index as AcademicYearsIndex;
 use App\Livewire\Admin\ApplicationReviewIndex;
 use App\Livewire\Admin\ApplicationReviewShow;
+use App\Livewire\Admin\AttendanceEditRequests\Index as AttendanceEditRequestsIndex;
 use App\Livewire\Admin\AuditLogs\Index as AuditLogsIndex;
 use App\Livewire\Admin\Classes\AddStudent as ClassAddStudent;
 use App\Livewire\Admin\Classes\Import as ClassImport;
@@ -11,6 +12,9 @@ use App\Livewire\Admin\Classes\Subjects as ClassSubjects;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\GradeLevels\Index as GradeLevelsIndex;
 use App\Livewire\Admin\GradeReviewIndex;
+use App\Livewire\Admin\Promotions\Index as PromotionsIndex;
+use App\Livewire\Admin\PromotionRules\Index as PromotionRulesIndex;
+use App\Livewire\Admin\Rankings\Index as RankingsIndex;
 use App\Livewire\Admin\Roles\Index as RolesIndex;
 use App\Livewire\Admin\Roles\Show as RolesShow;
 use App\Livewire\Admin\Settings\Edit as SettingsEdit;
@@ -43,6 +47,12 @@ Route::middleware(['auth', 'role:Administrator'])->prefix('admin')->name('admin.
     Route::get('teachers/{teacher}', TeachersShow::class)->name('teachers.show');
 
     Route::get('grade-review', GradeReviewIndex::class)->name('grade-review.index');
+
+    Route::get('attendance-edit-requests', AttendanceEditRequestsIndex::class)->name('attendance-edit-requests.index');
+
+    Route::get('rankings', RankingsIndex::class)->name('rankings.index');
+    Route::get('promotions', PromotionsIndex::class)->name('promotions.index');
+    Route::get('promotion-rules', PromotionRulesIndex::class)->name('promotion-rules.index');
 
     Route::get('students', StudentsIndex::class)->name('students.index');
     Route::get('students/{student}', StudentsShow::class)->name('students.show');
