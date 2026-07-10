@@ -23,6 +23,8 @@
                     @if (auth()->user()->hasRole('Administrator'))
                         <a href="{{ route('admin.dashboard') }}" class="text-sm text-gray-600 hover:text-gray-900">Dashboard</a>
                         <a href="{{ route('admin.applications.index') }}" class="text-sm text-gray-600 hover:text-gray-900">Application Review</a>
+                        <a href="{{ route('admin.grade-review.index') }}" class="text-sm text-gray-600 hover:text-gray-900">Grade Review</a>
+                        <a href="{{ route('admin.teachers.index') }}" class="text-sm text-gray-600 hover:text-gray-900">Teachers</a>
 
                         <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                             <button type="button" @click="open = !open" class="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1">
@@ -37,6 +39,17 @@
                                 <a href="{{ route('admin.classes.index') }}" wire:navigate class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Classes</a>
                             </div>
                         </div>
+                    @endif
+
+                    @if (auth()->user()->hasRole('Teacher'))
+                        <a href="{{ route('teacher.dashboard') }}" class="text-sm text-gray-600 hover:text-gray-900">Dashboard</a>
+                    @endif
+
+                    @if (auth()->user()->hasRole('Student'))
+                        <a href="{{ route('student.dashboard') }}" class="text-sm text-gray-600 hover:text-gray-900">Dashboard</a>
+                        <a href="{{ route('student.results') }}" class="text-sm text-gray-600 hover:text-gray-900">My Results</a>
+                        <a href="{{ route('student.attendance') }}" class="text-sm text-gray-600 hover:text-gray-900">My Attendance</a>
+                        <a href="{{ route('student.notifications') }}" class="text-sm text-gray-600 hover:text-gray-900">Notifications</a>
                     @endif
                 </div>
 

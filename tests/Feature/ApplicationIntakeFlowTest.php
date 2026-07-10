@@ -123,6 +123,11 @@ class ApplicationIntakeFlowTest extends TestCase
         $this->assertSame('active', $student->status->value);
         $this->assertNotNull($student->user->profile_picture);
         $this->assertTrue($this->registrar->notifications()->where('type', 'application_decided')->exists());
+
+        // The student's user account must actually be able to log in -
+        // nothing in the app ever flips a user from inactive to active, so
+        // creating it inactive here would have permanently locked them out.
+        $this->assertSame('active', $student->user->status->value);
     }
 
     public function test_approval_is_blocked_when_documents_are_missing(): void

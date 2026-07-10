@@ -154,11 +154,15 @@ class AdmissionService
             $host = parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost';
             $email = strtolower($studentNo).'@students.'.$host;
 
+            // Active immediately: admin approval is already the deliberate
+            // gate (SRS §4/§8) - there's no separate "grant login" action
+            // anywhere in the app, so leaving this Inactive would have
+            // permanently locked the student out with no way back in.
             $user = User::create([
                 'name' => trim("{$application->first_name} {$application->last_name}"),
                 'email' => $email,
                 'password' => Hash::make(Str::random(32)),
-                'status' => UserStatus::Inactive,
+                'status' => UserStatus::Active,
                 'must_change_password' => true,
             ]);
 

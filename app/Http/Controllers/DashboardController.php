@@ -29,11 +29,18 @@ class DashboardController extends Controller
             return redirect()->route('registrar.dashboard');
         }
 
-        // Teacher/Student dashboards aren't built yet (out of scope for this
-        // slice of Phase 11 - neither role has any underlying features built
-        // yet, so there's no real data to show) - a placeholder avoids a
-        // login<->dashboard redirect loop for those roles rather than
-        // bouncing them to /login while already authenticated.
+        if ($user->hasRole('Teacher')) {
+            return redirect()->route('teacher.dashboard');
+        }
+
+        if ($user->hasRole('Student')) {
+            return redirect()->route('student.dashboard');
+        }
+
+        // No role assigned at all - shouldn't normally happen (every user
+        // is seeded/created with a role), but a placeholder avoids a
+        // login<->dashboard redirect loop rather than bouncing them to
+        // /login while already authenticated.
         return response()->view('dashboard-placeholder');
     }
 }
