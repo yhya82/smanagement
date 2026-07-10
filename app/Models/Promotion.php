@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Enums\ApprovalStatus;
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Promotion extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'student_id',
         'from_class_id',

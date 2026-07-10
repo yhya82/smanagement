@@ -4,12 +4,15 @@ namespace App\Models;
 
 use App\Enums\ApprovalStatus;
 use App\Enums\Gender;
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StudentApplication extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'first_name',
         'last_name',

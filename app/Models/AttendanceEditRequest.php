@@ -4,11 +4,14 @@ namespace App\Models;
 
 use App\Enums\ApprovalStatus;
 use App\Enums\AttendanceStatus;
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AttendanceEditRequest extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'attendance_id',
         'requested_by',

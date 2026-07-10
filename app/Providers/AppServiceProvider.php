@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\StudentHealthRecord;
 use App\Models\TeacherSubjectAssignment;
 use App\Models\User;
+use App\Observers\StudentHealthRecordObserver;
 use App\Observers\TeacherActivationObserver;
+use App\Observers\UserObserver;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -41,5 +44,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         TeacherSubjectAssignment::observe(TeacherActivationObserver::class);
+        StudentHealthRecord::observe(StudentHealthRecordObserver::class);
+        User::observe(UserObserver::class);
     }
 }
