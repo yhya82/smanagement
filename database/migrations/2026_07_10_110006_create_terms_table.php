@@ -21,8 +21,9 @@ return new class extends Migration
 
             // Same single-active enforcement as academic_years, scoped globally:
             // only one term across the whole system may be active at a time.
+            // CASE WHEN (not MySQL's IF()) so this also works on SQLite.
             $table->unsignedTinyInteger('active_marker')
-                ->storedAs('IF(is_active, 1, NULL)')
+                ->storedAs('CASE WHEN is_active THEN 1 ELSE NULL END')
                 ->nullable();
             $table->unique('active_marker');
         });
