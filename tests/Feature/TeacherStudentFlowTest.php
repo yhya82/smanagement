@@ -8,9 +8,9 @@ use App\Enums\UserStatus;
 use App\Livewire\Admin\GradeReviewIndex;
 use App\Livewire\Admin\Teachers\Index as TeachersIndex;
 use App\Livewire\Admin\Teachers\Show as TeachersShow;
+use App\Livewire\Shared\Notifications as SharedNotifications;
 use App\Livewire\Student\Attendance as StudentAttendance;
 use App\Livewire\Student\Dashboard as StudentDashboard;
-use App\Livewire\Student\Notifications as StudentNotifications;
 use App\Livewire\Student\Results as StudentResults;
 use App\Livewire\Teacher\Attendance as TeacherAttendance;
 use App\Livewire\Teacher\Dashboard as TeacherDashboard;
@@ -151,7 +151,7 @@ class TeacherStudentFlowTest extends TestCase
         $notification = $this->student->user->notifications()->where('type', 'result_approved')->firstOrFail();
 
         Livewire::actingAs($this->student->user)
-            ->test(StudentNotifications::class)
+            ->test(SharedNotifications::class)
             ->assertSee('Result approved')
             ->call('markRead', $notification->id);
 

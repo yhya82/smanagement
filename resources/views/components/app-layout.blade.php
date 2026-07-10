@@ -23,9 +23,11 @@
                     @if (auth()->user()->hasRole('Administrator'))
                         <a href="{{ route('admin.dashboard') }}" class="text-sm text-gray-600 hover:text-gray-900">Dashboard</a>
                         <a href="{{ route('admin.students.index') }}" class="text-sm text-gray-600 hover:text-gray-900">Students</a>
+                        <a href="{{ route('admin.students.import') }}" class="text-sm text-gray-600 hover:text-gray-900">Import Students</a>
                         <a href="{{ route('admin.applications.index') }}" class="text-sm text-gray-600 hover:text-gray-900">Application Review</a>
                         <a href="{{ route('admin.grade-review.index') }}" class="text-sm text-gray-600 hover:text-gray-900">Grade Review</a>
                         <a href="{{ route('admin.teachers.index') }}" class="text-sm text-gray-600 hover:text-gray-900">Teachers</a>
+                        <a href="{{ route('admin.audit-log.index') }}" class="text-sm text-gray-600 hover:text-gray-900">Audit Log</a>
 
                         <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                             <button type="button" @click="open = !open" class="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1">
@@ -50,11 +52,19 @@
                         <a href="{{ route('student.dashboard') }}" class="text-sm text-gray-600 hover:text-gray-900">Dashboard</a>
                         <a href="{{ route('student.results') }}" class="text-sm text-gray-600 hover:text-gray-900">My Results</a>
                         <a href="{{ route('student.attendance') }}" class="text-sm text-gray-600 hover:text-gray-900">My Attendance</a>
-                        <a href="{{ route('student.notifications') }}" class="text-sm text-gray-600 hover:text-gray-900">Notifications</a>
                     @endif
                 </div>
 
                 <div class="flex items-center gap-4">
+                    @php $unreadCount = auth()->user()->notifications()->where('is_read', false)->count(); @endphp
+                    <a href="{{ route('notifications') }}" class="relative text-sm text-gray-600 hover:text-gray-900">
+                        Notifications
+                        @if ($unreadCount > 0)
+                            <span class="absolute -top-2 -right-3 inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-medium">
+                                {{ $unreadCount > 9 ? '9+' : $unreadCount }}
+                            </span>
+                        @endif
+                    </a>
                     <span class="text-sm text-gray-500">{{ auth()->user()->name }}</span>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf

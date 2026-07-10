@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Student;
+namespace App\Livewire\Shared;
 
 use App\Models\Notification;
 use Illuminate\Support\Facades\Auth;
@@ -8,6 +8,12 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
 
+/**
+ * Shared across every role, not just Student - notifications are purely
+ * ownership-scoped (SRS §19: every actor gets their own), and Admin/
+ * Registrar/Teacher all have notifications firing to them (ApplicationSubmitted,
+ * ApplicationDecided, SubjectAssigned) with nowhere to read them before this.
+ */
 #[Layout('components.app-layout')]
 class Notifications extends Component
 {
@@ -24,6 +30,6 @@ class Notifications extends Component
     {
         $notifications = Auth::user()->notifications()->latest()->paginate(15);
 
-        return view('livewire.student.notifications', ['notifications' => $notifications]);
+        return view('livewire.shared.notifications', ['notifications' => $notifications]);
     }
 }
