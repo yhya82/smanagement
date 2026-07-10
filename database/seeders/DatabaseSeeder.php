@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             DocumentTypeSeeder::class,
             GradeLevelSeeder::class,
             AcademicYearSeeder::class,
+            ClassSeeder::class,
             AdminUserSeeder::class,
         ]);
     }
