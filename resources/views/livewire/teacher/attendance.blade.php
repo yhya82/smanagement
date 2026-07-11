@@ -10,6 +10,11 @@
         </div>
     @endif
 
+    @if ($holiday)
+        <div class="rounded-md bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/30 p-4 text-sm text-yellow-800 dark:text-yellow-400">
+            Public holiday: {{ $holiday->title }}. Attendance isn't required on this day.
+        </div>
+    @else
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
             <thead class="bg-gray-50 dark:bg-gray-700/50">
@@ -100,5 +105,6 @@
             class="mt-4 bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-indigo-500">
             Save Attendance
         </button>
+    @endif
     @endif
 </div>

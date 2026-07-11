@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ExamType;
 use App\Enums\ResultStatus;
 use App\Models\ResultEntry;
 use App\Models\SchoolClass;
@@ -20,6 +21,7 @@ class ResultService
         Subject $subject,
         SchoolClass $class,
         Term $term,
+        ExamType $examType,
         float $score,
         float $maxScore,
         Teacher $enteredBy
@@ -29,7 +31,7 @@ class ResultService
         }
 
         return ResultEntry::updateOrCreate(
-            ['student_id' => $student->id, 'subject_id' => $subject->id, 'term_id' => $term->id],
+            ['student_id' => $student->id, 'subject_id' => $subject->id, 'term_id' => $term->id, 'exam_type' => $examType],
             [
                 'class_id' => $class->id,
                 'entered_by' => $enteredBy->id,

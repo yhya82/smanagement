@@ -5,6 +5,7 @@ namespace App\Livewire\Teacher;
 use App\Enums\AttendanceStatus;
 use App\Models\AttendanceEditRequest;
 use App\Models\AttendanceRecord;
+use App\Models\CalendarEvent;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Services\AttendanceService;
@@ -66,6 +67,12 @@ class Attendance extends Component
 
     public function save(AttendanceService $attendanceService): void
     {
+        if (CalendarEvent::holidayOn($this->date)) {
+            $this->statusMessage = null;
+
+            return;
+        }
+
         $teacher = Auth::user()->teacher;
 
         $existingRecords = AttendanceRecord::where('class_id', $this->class->id)
@@ -164,6 +171,7 @@ class Attendance extends Component
                 ->where('status', 'pending')
                 ->pluck('attendance_id')
                 ->all(),
+            'holiday' => CalendarEvent::holidayOn($this->date),
         ]);
     }
 }

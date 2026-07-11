@@ -29,6 +29,10 @@ class Edit extends Component
 
     public $logo;
 
+    public int $midterm_weight = 40;
+
+    public int $final_weight = 60;
+
     public bool $saved = false;
 
     protected function rules(): array
@@ -41,6 +45,8 @@ class Edit extends Component
             'email' => ['nullable', 'email', 'max:255'],
             'website' => ['nullable', 'url', 'max:255'],
             'logo' => ['nullable', 'image', 'max:2048'],
+            'midterm_weight' => ['required', 'integer', 'min:0', 'max:100'],
+            'final_weight' => ['required', 'integer', 'min:0', 'max:100'],
         ];
     }
 
@@ -56,6 +62,8 @@ class Edit extends Component
         $this->phone = $this->setting->phone ?? '';
         $this->email = $this->setting->email ?? '';
         $this->website = $this->setting->website ?? '';
+        $this->midterm_weight = $this->setting->midterm_weight;
+        $this->final_weight = $this->setting->final_weight;
     }
 
     public function save(): void
@@ -66,6 +74,12 @@ class Edit extends Component
 
         $validated = $this->validate();
         unset($validated['logo']);
+
+        if ($validated['midterm_weight'] + $validated['final_weight'] !== 100) {
+            $this->addError('final_weight', 'Midterm and final weights must add up to 100.');
+
+            return;
+        }
 
         if ($this->logo) {
             if ($this->setting->logo_path) {

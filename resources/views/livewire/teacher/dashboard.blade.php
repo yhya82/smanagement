@@ -14,6 +14,13 @@
         <x-stat-card icon="pencil-square" color="yellow" label="Pending attendance edit requests">{{ $pendingEditRequests }}</x-stat-card>
     </div>
 
+    @if ($homeroomClass)
+        <div class="mb-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
+            <p class="text-sm text-gray-700 dark:text-gray-300">You're the homeroom teacher for <span class="font-medium text-gray-900 dark:text-gray-100">{{ $homeroomClass->name }}</span>.</p>
+            <a href="{{ route('teacher.remarks', $homeroomClass) }}" wire:navigate class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">Write Term Remarks</a>
+        </div>
+    @endif
+
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
             <h2 class="text-sm font-medium text-gray-900 dark:text-gray-100">My assignments</h2>

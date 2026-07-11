@@ -115,13 +115,13 @@ class TeacherStudentFlowTest extends TestCase
         $gradesComponent = Livewire::actingAs($teacher->user)
             ->test(TeacherGrades::class, ['class' => $this->class, 'subject' => $this->subject]);
 
-        $gradesComponent->set("entries.{$this->student->id}.score", '88')
-            ->set("entries.{$this->student->id}.max_score", '100')
+        $gradesComponent->set("entries.{$this->student->id}.final.score", '88')
+            ->set("entries.{$this->student->id}.final.max_score", '100')
             ->call('saveDrafts');
 
         $this->assertTrue($this->student->resultEntries()->where('status', 'draft')->exists());
 
-        $gradesComponent->call('submitAll');
+        $gradesComponent->call('submitFinal');
         $this->assertTrue($this->student->resultEntries()->where('status', 'submitted')->exists());
 
         // --- Admin reviews and approves the grade ---

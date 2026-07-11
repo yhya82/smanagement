@@ -8,8 +8,12 @@ use App\Models\User;
 class TermRankingPolicy
 {
     /**
-     * Rankings are system-computed (RankingService, Phase 6) - there is
-     * deliberately no create/update ability here for end users.
+     * Rankings themselves are system-computed (RankingService) - there is
+     * deliberately no create ability for end users. update() exists only
+     * for the one field a human does write: the term remark, and only the
+     * class's own homeroom teacher may write it - not even Administrator,
+     * since update/delete are excluded from the Administrator bypass in
+     * AppServiceProvider::boot().
      */
     public function viewAny(User $user): bool
     {
@@ -31,5 +35,14 @@ class TermRankingPolicy
         }
 
         return false;
+    }
+
+    public function update(User $user, TermRanking $ranking): bool
+    {
+        if (! $user->teacher || $ranking->schoolClass->homeroom_teacher_id === null) {
+            return false;
+        }
+
+        return $user->teacher->id === $ranking->schoolClass->homeroom_teacher_id;
     }
 }

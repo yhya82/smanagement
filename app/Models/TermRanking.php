@@ -15,6 +15,7 @@ class TermRanking extends Model
         'position',
         'is_tied',
         'computed_at',
+        'remark',
     ];
 
     protected function casts(): array

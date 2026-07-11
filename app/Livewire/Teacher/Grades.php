@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Teacher;
 
+use App\Enums\ExamType;
 use App\Enums\ResultStatus;
 use App\Models\ResultEntry;
 use App\Models\SchoolClass;
@@ -22,7 +23,7 @@ class Grades extends Component
 
     public ?Term $term = null;
 
-    /** @var array<int, array{score: string, max_score: string}> keyed by student_id */
+    /** @var array<int, array{midterm: array{score: string, max_score: string}, final: array{score: string, max_score: string}}> keyed by student_id */
     public array $entries = [];
 
     public ?string $statusMessage = null;
@@ -50,16 +51,18 @@ class Grades extends Component
             ->where('subject_id', $this->subject->id)
             ->where('term_id', $this->term->id)
             ->get()
-            ->keyBy('student_id');
+            ->groupBy('student_id');
 
         $this->entries = Student::where('current_class_id', $this->class->id)
             ->get()
             ->mapWithKeys(function (Student $student) use ($existing) {
-                $entry = $existing->get($student->id);
+                $studentEntries = $existing->get($student->id, collect());
+                $midterm = $studentEntries->firstWhere('exam_type', ExamType::Midterm);
+                $final = $studentEntries->firstWhere('exam_type', ExamType::Final);
 
                 return [$student->id => [
-                    'score' => $entry ? (string) $entry->score : '',
-                    'max_score' => $entry ? (string) $entry->max_score : '100',
+                    'midterm' => ['score' => $midterm ? (string) $midterm->score : '', 'max_score' => $midterm ? (string) $midterm->max_score : '40'],
+                    'final' => ['score' => $final ? (string) $final->score : '', 'max_score' => $final ? (string) $final->max_score : '60'],
                 ]];
             })
             ->all();
@@ -69,43 +72,59 @@ class Grades extends Component
     {
         $teacher = Auth::user()->teacher;
 
-        foreach ($this->entries as $studentId => $values) {
-            if ($values['score'] === '' || $values['max_score'] === '') {
-                continue;
+        foreach (array_keys($this->entries) as $studentId) {
+            foreach (ExamType::cases() as $examType) {
+                $values = $this->entries[$studentId][$examType->value];
+
+                if ($values['score'] === '' || $values['max_score'] === '') {
+                    continue;
+                }
+
+                $existing = ResultEntry::where('student_id', $studentId)
+                    ->where('subject_id', $this->subject->id)
+                    ->where('term_id', $this->term->id)
+                    ->where('exam_type', $examType)
+                    ->first();
+
+                // Approved/submitted entries are left alone here - only drafts
+                // (or brand-new rows) get written by this bulk save.
+                if ($existing && $existing->status !== ResultStatus::Draft) {
+                    continue;
+                }
+
+                $resultService->saveDraft(
+                    Student::find($studentId),
+                    $this->subject,
+                    $this->class,
+                    $this->term,
+                    $examType,
+                    (float) $values['score'],
+                    (float) $values['max_score'],
+                    $teacher
+                );
             }
-
-            $student = Student::find($studentId);
-            $existing = ResultEntry::where('student_id', $studentId)
-                ->where('subject_id', $this->subject->id)
-                ->where('term_id', $this->term->id)
-                ->first();
-
-            // Approved/submitted entries are left alone here - only drafts
-            // (or brand-new rows) get written by this bulk save.
-            if ($existing && $existing->status !== ResultStatus::Draft) {
-                continue;
-            }
-
-            $resultService->saveDraft(
-                $student,
-                $this->subject,
-                $this->class,
-                $this->term,
-                (float) $values['score'],
-                (float) $values['max_score'],
-                $teacher
-            );
         }
 
         $this->statusMessage = 'Draft scores saved.';
         $this->loadEntries();
     }
 
-    public function submitAll(ResultService $resultService): void
+    public function submitMidterm(ResultService $resultService): void
+    {
+        $this->submitExamType(ExamType::Midterm, $resultService);
+    }
+
+    public function submitFinal(ResultService $resultService): void
+    {
+        $this->submitExamType(ExamType::Final, $resultService);
+    }
+
+    private function submitExamType(ExamType $examType, ResultService $resultService): void
     {
         $drafts = ResultEntry::where('class_id', $this->class->id)
             ->where('subject_id', $this->subject->id)
             ->where('term_id', $this->term->id)
+            ->where('exam_type', $examType)
             ->where('status', ResultStatus::Draft)
             ->get();
 
@@ -113,18 +132,23 @@ class Grades extends Component
             $resultService->submit($draft);
         }
 
-        $this->statusMessage = "Submitted {$drafts->count()} result(s) for admin approval.";
+        $label = $examType === ExamType::Midterm ? 'midterm' : 'final';
+        $this->statusMessage = "Submitted {$drafts->count()} {$label} result(s) for admin approval.";
         $this->loadEntries();
     }
 
     public function render()
     {
-        $statuses = $this->term
-            ? ResultEntry::where('class_id', $this->class->id)
+        $statuses = collect();
+
+        if ($this->term) {
+            $statuses = ResultEntry::where('class_id', $this->class->id)
                 ->where('subject_id', $this->subject->id)
                 ->where('term_id', $this->term->id)
-                ->pluck('status', 'student_id')
-            : collect();
+                ->get()
+                ->groupBy('student_id')
+                ->map(fn ($entries) => $entries->mapWithKeys(fn (ResultEntry $entry) => [$entry->exam_type->value => $entry->status->value]));
+        }
 
         return view('livewire.teacher.grades', [
             'students' => Student::where('current_class_id', $this->class->id)->orderBy('last_name')->get(),

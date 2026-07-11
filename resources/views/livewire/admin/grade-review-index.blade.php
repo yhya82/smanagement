@@ -9,6 +9,7 @@
                     <th class="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Subject</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Class</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Term</th>
+                    <th class="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Exam</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Score</th>
                     <th></th>
                 </tr>
@@ -20,6 +21,7 @@
                         <td class="px-4 py-2 text-gray-500 dark:text-gray-400">{{ $result->subject->name }}</td>
                         <td class="px-4 py-2 text-gray-500 dark:text-gray-400">{{ $result->schoolClass->name }}</td>
                         <td class="px-4 py-2 text-gray-500 dark:text-gray-400">{{ $result->term->name }}</td>
+                        <td class="px-4 py-2 text-gray-500 dark:text-gray-400">{{ ucfirst($result->exam_type->value) }}</td>
                         <td class="px-4 py-2 text-gray-500 dark:text-gray-400">{{ $result->score }} / {{ $result->max_score }}</td>
                         <td class="px-4 py-2 text-right space-x-3">
                             <button type="button" wire:click="approve({{ $result->id }})" class="text-xs text-green-600 hover:text-green-500">Approve</button>
@@ -28,7 +30,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">No grades awaiting review.</td>
+                        <td colspan="7" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">No grades awaiting review.</td>
                     </tr>
                 @endforelse
             </tbody>

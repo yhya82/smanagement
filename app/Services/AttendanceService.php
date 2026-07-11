@@ -6,6 +6,7 @@ use App\Enums\ApprovalStatus;
 use App\Enums\AttendanceStatus;
 use App\Models\AttendanceEditRequest;
 use App\Models\AttendanceRecord;
+use App\Models\CalendarEvent;
 use App\Models\SchoolClass;
 use App\Models\Teacher;
 use App\Models\User;
@@ -30,6 +31,10 @@ class AttendanceService
     {
         if (! $markedBy->hasAccessToClass($class->id)) {
             throw new RuntimeException('Teacher is not assigned to this class.');
+        }
+
+        if ($holiday = CalendarEvent::holidayOn($date)) {
+            throw new RuntimeException("{$date} is a public holiday ({$holiday->title}) - attendance can't be marked.");
         }
 
         $marked = [];

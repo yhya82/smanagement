@@ -33,6 +33,7 @@ class Dashboard extends Component
             'assignments' => $assignments,
             'studentCount' => $studentCount,
             'pendingEditRequests' => $pendingEditRequests,
+            'homeroomClass' => $teacher->homeroomClasses()->first(),
         ]);
     }
 }

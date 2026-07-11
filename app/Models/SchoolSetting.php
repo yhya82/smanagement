@@ -20,11 +20,22 @@ class SchoolSetting extends Model
         'email',
         'website',
         'logo_path',
+        'midterm_weight',
+        'final_weight',
     ];
 
     public static function current(): self
     {
-        return static::query()->firstOrCreate([], ['name' => 'School Management']);
+        // Explicit values, not DB column defaults: firstOrCreate()'s create()
+        // path returns the in-memory instance as-is, without re-querying the
+        // row, so any column left to a server-side default would come back
+        // unset on this object (and null-ing a typed property downstream)
+        // rather than actually holding the default it was just given.
+        return static::query()->firstOrCreate([], [
+            'name' => 'School Management',
+            'midterm_weight' => 40,
+            'final_weight' => 60,
+        ]);
     }
 
     public function logoUrl(): ?string

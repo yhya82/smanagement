@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Enums\ExamType;
 use App\Enums\ResultStatus;
 use App\Models\ResultEntry;
 use App\Models\SchoolClass;
+use App\Models\SchoolSetting;
 use App\Models\Term;
 use App\Models\TermRanking;
 use Illuminate\Support\Collection;
@@ -17,16 +19,38 @@ class RankingService
      * ranking - "equal scores share positions" (§18), so ties get the same
      * position and the next distinct value skips by the tied count
      * (1, 1, 3, 4 - not 1, 1, 2, 3).
+     *
+     * Midterm and final are approved independently, so a subject may have
+     * one, the other, or both approved at compute time. Both approved ->
+     * combine with the school's configured weights; only one approved -> use
+     * it alone as an interim subject score (don't make a student wait for
+     * the final to see where they stand).
      */
     public function computeForClassTerm(SchoolClass $class, Term $term): Collection
     {
+        $weights = SchoolSetting::current();
+
         $sorted = ResultEntry::query()
             ->where('class_id', $class->id)
             ->where('term_id', $term->id)
             ->where('status', ResultStatus::Approved)
             ->get()
             ->groupBy('student_id')
-            ->map(fn ($entries) => round($entries->avg(fn ($entry) => ($entry->score / $entry->max_score) * 100), 2))
+            ->map(function (Collection $entries) use ($weights) {
+                $subjectPercentages = $entries->groupBy('subject_id')->map(function (Collection $subjectEntries) use ($weights) {
+                    $midterm = $subjectEntries->firstWhere('exam_type', ExamType::Midterm);
+                    $final = $subjectEntries->firstWhere('exam_type', ExamType::Final);
+
+                    if ($midterm && $final) {
+                        return $midterm->percentage() * ($weights->midterm_weight / 100)
+                            + $final->percentage() * ($weights->final_weight / 100);
+                    }
+
+                    return ($midterm ?? $final)->percentage();
+                });
+
+                return round($subjectPercentages->avg(), 2);
+            })
             ->sortDesc();
 
         $rows = $sorted->map(fn ($average, $studentId) => ['student_id' => $studentId, 'average' => $average])->values()->all();
