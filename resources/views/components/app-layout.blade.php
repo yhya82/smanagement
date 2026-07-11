@@ -1,29 +1,29 @@
 <!DOCTYPE html>
-<html lang="en"
-    x-data="{
-        sidebarOpen: false,
-        darkMode: localStorage.getItem('theme')
-            ? localStorage.getItem('theme') === 'dark'
-            : window.matchMedia('(prefers-color-scheme: dark)').matches,
-    }"
-    x-init="$watch('darkMode', value => localStorage.setItem('theme', value ? 'dark' : 'light'))"
-    :class="{ dark: darkMode }">
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title ?? \App\Models\SchoolSetting::current()->name }}</title>
-    {{-- Prevents a flash of the wrong theme before Alpine initializes. --}}
     <script>
-        if (localStorage.getItem('theme')
-            ? localStorage.getItem('theme') === 'dark'
-            : window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.classList.add('dark');
+        // Applies the saved theme app-wide, not just on first load: this
+        // re-runs after every wire:navigate transition (Livewire dispatches
+        // 'livewire:navigated' on each one), because wire:navigate replaces
+        // <body> without a full page reload - an Alpine x-data scope on
+        // <html> doesn't reliably survive that swap, but this plain script
+        // re-applying the class on the real event does, on every page.
+        function applyStoredTheme() {
+            const isDark = localStorage.getItem('theme')
+                ? localStorage.getItem('theme') === 'dark'
+                : window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.classList.toggle('dark', isDark);
         }
+        applyStoredTheme();
+        document.addEventListener('livewire:navigated', applyStoredTheme);
     </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100" x-data="{ sidebarOpen: false }">
     @auth
         @php
             $currentUser = auth()->user();
@@ -116,7 +116,13 @@
                 <div class="flex-1"></div>
 
                 <div class="flex items-center gap-3">
-                    <button type="button" x-on:click="darkMode = !darkMode"
+                    <button type="button"
+                        x-data="{ darkMode: document.documentElement.classList.contains('dark') }"
+                        x-on:click="
+                            darkMode = ! darkMode;
+                            localStorage.setItem('theme', darkMode ? 'dark' : 'light');
+                            document.documentElement.classList.toggle('dark', darkMode);
+                        "
                         class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
                         title="Toggle dark mode">
                         <span x-show="!darkMode"><x-icon name="moon" class="size-5" /></span>
