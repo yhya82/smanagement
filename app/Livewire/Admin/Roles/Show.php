@@ -61,7 +61,12 @@ class Show extends Component
     {
         $this->authorize('update', $this->role);
 
-        $this->role->permissions()->sync($this->selectedPermissionIds);
+        // selectedPermissionIds is a public Livewire property, so a tampered
+        // request could submit IDs beyond the checkboxes actually rendered -
+        // sync() would happily attach a permission the UI never offered.
+        $validIds = Permission::whereIn('id', $this->selectedPermissionIds)->pluck('id')->all();
+
+        $this->role->permissions()->sync($validIds);
     }
 
     public function render()

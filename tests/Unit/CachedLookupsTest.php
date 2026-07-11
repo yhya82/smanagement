@@ -2,15 +2,17 @@
 
 namespace Tests\Unit;
 
+use App\Enums\CalendarEventType;
 use App\Models\AcademicYear;
+use App\Models\CalendarEvent;
 use App\Models\SchoolSetting;
 use App\Models\Term;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Term::active()/AcademicYear::active()/SchoolSetting::current() are cached
- * (Term/SchoolSetting/AcademicYear::current, previously a fresh query on
+ * Term::active()/AcademicYear::active()/SchoolSetting::current()/
+ * CalendarEvent::holidayOn() are cached (all previously a fresh query on
  * nearly every request) - these are plain model-level tests, not
  * HTTP/Livewire ones, because what's actually being verified is the
  * model's own read/invalidate logic, not any particular page.
@@ -58,5 +60,31 @@ class CachedLookupsTest extends TestCase
         $setting->update(['name' => 'Sunrise Academy']);
 
         $this->assertSame('Sunrise Academy', SchoolSetting::current()->name);
+    }
+
+    public function test_calendar_event_holiday_on_is_cached_and_invalidated_on_write(): void
+    {
+        $year = AcademicYear::create(['name' => '2026/2027', 'start_date' => '2026-09-01', 'end_date' => '2027-07-31', 'is_active' => true]);
+        $term = Term::create(['academic_year_id' => $year->id, 'name' => 'Term A', 'start_date' => '2026-09-01', 'end_date' => '2026-12-01', 'is_active' => true]);
+
+        $this->assertNull(CalendarEvent::holidayOn('2026-10-05'));
+
+        $holiday = CalendarEvent::create([
+            'term_id' => $term->id, 'date' => '2026-10-05', 'title' => 'National Day', 'type' => CalendarEventType::Holiday,
+        ]);
+
+        $this->assertTrue(CalendarEvent::isHoliday('2026-10-05'), 'Creating the holiday must bust the cached null result.');
+
+        // Moving it to a different date must bust both the old date's
+        // cached "yes" and the new date's cached "no".
+        $this->assertFalse(CalendarEvent::isHoliday('2026-10-06'));
+        $holiday->update(['date' => '2026-10-06']);
+
+        $this->assertFalse(CalendarEvent::isHoliday('2026-10-05'), 'The old date must no longer report a holiday once it moved.');
+        $this->assertTrue(CalendarEvent::isHoliday('2026-10-06'));
+
+        $holiday->delete();
+
+        $this->assertFalse(CalendarEvent::isHoliday('2026-10-06'), 'Deleting the event must bust the cache too.');
     }
 }

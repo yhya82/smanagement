@@ -293,6 +293,20 @@ class UserRoleManagementTest extends TestCase
         $this->assertTrue($role->permissions()->where('permissions.id', $permission->id)->exists());
     }
 
+    public function test_saving_permissions_ignores_ids_that_do_not_exist(): void
+    {
+        $role = Role::create(['name' => 'Librarian', 'is_system' => false, 'is_active' => true]);
+        $permission = Permission::first();
+        $bogusId = Permission::max('id') + 999;
+
+        Livewire::actingAs($this->admin)
+            ->test(RolesShow::class, ['role' => $role])
+            ->set('selectedPermissionIds', [$permission->id, $bogusId])
+            ->call('savePermissions');
+
+        $this->assertSame([$permission->id], $role->permissions()->pluck('permissions.id')->all());
+    }
+
     public function test_disabling_a_role_revokes_it_from_holders_immediately(): void
     {
         $role = Role::create(['name' => 'Librarian', 'is_system' => false, 'is_active' => true]);
