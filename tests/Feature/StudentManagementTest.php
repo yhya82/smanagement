@@ -157,4 +157,46 @@ class StudentManagementTest extends TestCase
             ->get(route('admin.students.index'))
             ->assertForbidden();
     }
+
+    /**
+     * Phase 12 policy/scope test: a teacher assigned only to Class B must
+     * not be able to view a student who is only ever in Class A, even
+     * through a direct record lookup (not just the index listing, which
+     * is blocked entirely above) - StudentPolicy::view() is what has to
+     * catch this, via Teacher::hasAccessToStudent().
+     */
+    public function test_teacher_cannot_view_a_student_outside_their_assigned_class(): void
+    {
+        $subject = \App\Models\Subject::create(['name' => 'Mathematics', 'code' => 'MATH1']);
+        $term = \App\Models\Term::create([
+            'academic_year_id' => $this->classA->academic_year_id, 'name' => 'Term 1',
+            'start_date' => '2026-09-01', 'end_date' => '2026-12-12', 'is_active' => true,
+        ]);
+
+        $teacherUser = User::create(['name' => 'Class B Teacher', 'email' => 'classb-teacher@test.com', 'password' => 'x', 'status' => UserStatus::Active, 'must_change_password' => false]);
+        $teacherUser->roles()->attach(Role::where('name', 'Teacher')->first());
+        $teacher = \App\Models\Teacher::create(['user_id' => $teacherUser->id, 'employee_no' => 'T2', 'status' => 'active', 'hire_date' => '2020-01-01']);
+
+        \App\Models\TeacherSubjectAssignment::create([
+            'teacher_id' => $teacher->id, 'subject_id' => $subject->id, 'class_id' => $this->classB->id,
+            'term_id' => $term->id, 'is_active' => true,
+        ]);
+
+        // Sanity check the fixture actually proves scope, not just a broken
+        // permission - the same teacher CAN view a student in Class B.
+        $otherStudentUser = User::create(['name' => 'Other Student', 'email' => 'other-student@test.com', 'password' => 'x', 'status' => UserStatus::Active, 'must_change_password' => false]);
+        $otherStudent = Student::create([
+            'user_id' => $otherStudentUser->id, 'student_no' => 'S2', 'first_name' => 'Other', 'last_name' => 'Student',
+            'dob' => '2015-01-01', 'gender' => Gender::Female, 'admission_date' => '2024-01-01',
+            'status' => StudentStatus::Active, 'current_class_id' => $this->classB->id,
+        ]);
+
+        Livewire::actingAs($teacherUser)
+            ->test(StudentsShow::class, ['student' => $otherStudent])
+            ->assertOk();
+
+        Livewire::actingAs($teacherUser)
+            ->test(StudentsShow::class, ['student' => $this->student])
+            ->assertForbidden();
+    }
 }
