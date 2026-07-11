@@ -9,10 +9,13 @@ use App\Models\SchoolClass;
 use App\Models\Teacher;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 #[Layout('components.app-layout')]
 class Index extends Component
 {
+    use WithPagination;
+
     public bool $showCreateForm = false;
 
     public ?string $classTeacherError = null;
@@ -99,7 +102,7 @@ class Index extends Component
             'classes' => SchoolClass::with(['gradeLevel', 'academicYear', 'homeroomTeacher.user'])
                 ->withCount(['students', 'classSubjects'])
                 ->latest()
-                ->get(),
+                ->paginate(15),
             'gradeLevels' => GradeLevel::orderBy('sort_order')->get(),
             'academicYears' => AcademicYear::orderBy('name')->get(),
             'teachers' => Teacher::with('user')

@@ -146,7 +146,12 @@ class Index extends Component
             'promotions' => $promotions,
             'classes' => SchoolClass::orderBy('name')->get(),
             'terms' => Term::orderBy('name')->get(),
-            'students' => Student::where('status', StudentStatus::Active)->orderBy('last_name')->get(),
+            // Only queried when the manual-promotion panel is actually open -
+            // no reason to load every active student in the school on every
+            // visit to this page just in case that form gets opened.
+            'students' => $this->showManualForm
+                ? Student::where('status', StudentStatus::Active)->orderBy('last_name')->get()
+                : collect(),
         ]);
     }
 }

@@ -11,6 +11,7 @@ use App\Services\RankingService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 /**
  * Wires RankingService/ComputeRankings up to an admin action - previously
@@ -20,6 +21,8 @@ use Livewire\Component;
 #[Layout('components.app-layout')]
 class Index extends Component
 {
+    use WithPagination;
+
     #[Url]
     public string $termId = '';
 
@@ -33,6 +36,16 @@ class Index extends Component
         $this->authorize('viewAny', TermRanking::class);
 
         $this->termId = (string) (Term::where('is_active', true)->first()?->id ?? '');
+    }
+
+    public function updatingClassId(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingTermId(): void
+    {
+        $this->resetPage();
     }
 
     public function compute(RankingService $rankingService): void
@@ -75,7 +88,7 @@ class Index extends Component
             ->when($this->classId, fn ($query) => $query->where('class_id', $this->classId))
             ->orderBy('class_id')
             ->orderBy('position')
-            ->get();
+            ->paginate(20);
 
         return view('livewire.admin.rankings.index', [
             'rankings' => $rankings,

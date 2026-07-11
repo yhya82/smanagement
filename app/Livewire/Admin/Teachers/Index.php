@@ -6,10 +6,13 @@ use App\Models\Teacher;
 use App\Services\TeacherOnboardingService;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 #[Layout('components.app-layout')]
 class Index extends Component
 {
+    use WithPagination;
+
     public bool $showCreateForm = false;
 
     public string $name = '';
@@ -41,7 +44,7 @@ class Index extends Component
     public function render()
     {
         return view('livewire.admin.teachers.index', [
-            'teachers' => Teacher::with('user')->withCount('subjectAssignments')->latest()->get(),
+            'teachers' => Teacher::with('user')->withCount('subjectAssignments')->latest()->paginate(15),
         ]);
     }
 }
