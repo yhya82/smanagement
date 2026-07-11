@@ -36,11 +36,15 @@ class TimetableService
             throw new RuntimeException('This class has no subjects assigned for this term yet.');
         }
 
-        $schedulableSubjectIds = TeacherSubjectAssignment::where('class_id', $class->id)
-            ->where('term_id', $term->id)
-            ->where('is_active', true)
-            ->whereIn('subject_id', $assignedSubjectIds)
-            ->pluck('subject_id')
+        // One query for every class's active teacher assignments this term,
+        // instead of the old per-slot-attempt query: this map answers both
+        // "who teaches this class's subjects" and "who's already busy
+        // elsewhere at a given slot" without touching the database again
+        // for the rest of this method.
+        $teacherMap = TeacherSubjectAssignment::activeTeacherMap($term->id);
+
+        $schedulableSubjectIds = $assignedSubjectIds
+            ->filter(fn ($subjectId) => $teacherMap->has("{$class->id}:{$subjectId}"))
             ->unique()
             ->values();
 
@@ -54,11 +58,27 @@ class TimetableService
             throw new RuntimeException('No periods have been configured yet.');
         }
 
-        $existingSlotKeys = TimetableEntry::where('class_id', $class->id)
-            ->where('term_id', $term->id)
-            ->get(['day_of_week', 'period_id'])
+        $existingEntries = TimetableEntry::where('term_id', $term->id)->get(['class_id', 'day_of_week', 'period_id', 'subject_id']);
+
+        $existingSlotKeys = $existingEntries->where('class_id', $class->id)
             ->map(fn (TimetableEntry $entry) => "{$entry->day_of_week}:{$entry->period_id}")
             ->all();
+
+        // "day:period:teacher_id" already taken by a DIFFERENT class - built
+        // once, up front, from every other class's entries this term.
+        $busySlots = [];
+
+        foreach ($existingEntries as $entry) {
+            if ($entry->class_id === $class->id) {
+                continue;
+            }
+
+            $teacher = $teacherMap->get("{$entry->class_id}:{$entry->subject_id}");
+
+            if ($teacher) {
+                $busySlots["{$entry->day_of_week}:{$entry->period_id}:{$teacher->id}"] = true;
+            }
+        }
 
         $created = 0;
         $skipped = 0;
@@ -79,7 +99,9 @@ class TimetableService
                     $subjectId = $schedulableSubjectIds[$cursor % $subjectCount];
                     $cursor++;
 
-                    if (! $this->teacherIsBusyElsewhere($class, $term, $day, $period, $subjectId)) {
+                    $teacherId = $teacherMap->get("{$class->id}:{$subjectId}")->id;
+
+                    if (! isset($busySlots["{$day}:{$period->id}:{$teacherId}"])) {
                         try {
                             TimetableEntry::create([
                                 'class_id' => $class->id, 'term_id' => $term->id, 'period_id' => $period->id,
@@ -161,12 +183,14 @@ class TimetableService
             return false;
         }
 
+        $teacherMap = TeacherSubjectAssignment::activeTeacherMap($term->id);
+
         return TimetableEntry::where('term_id', $term->id)
             ->where('day_of_week', $day)
             ->where('period_id', $period->id)
             ->where('class_id', '!=', $class->id)
-            ->get()
-            ->contains(fn (TimetableEntry $entry) => $entry->teacher()?->id === $teacher->id);
+            ->get(['class_id', 'subject_id'])
+            ->contains(fn (TimetableEntry $entry) => $teacherMap->get("{$entry->class_id}:{$entry->subject_id}")?->id === $teacher->id);
     }
 
     private function notifyAffectedTeacher(TimetableEntry $entry, User $changedBy, bool $cleared = false): void

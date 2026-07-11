@@ -151,6 +151,46 @@ class TimetableTest extends TestCase
         $this->assertSame(10, TimetableEntry::where('class_id', $class->id)->count());
     }
 
+    public function test_generate_query_count_does_not_scale_with_slot_count(): void
+    {
+        // Deliberately larger than the other tests' fixtures - the old
+        // implementation queried once per subject-attempt per slot, so this
+        // shape (5 days x 6 periods x up to 4 subject attempts, plus another
+        // class in the same term to populate the "busy elsewhere" check)
+        // would have run into the dozens of queries under the old code.
+        $this->makePeriods(6);
+        $class = $this->makeClass('Class A');
+        $otherClass = $this->makeClass('Class B');
+
+        foreach (['Mathematics', 'English', 'Science', 'History'] as $name) {
+            $subject = Subject::create(['name' => $name, 'code' => strtoupper(substr($name, 0, 4)).'1']);
+            $this->makeTeacherAssignedTo($class, $subject);
+        }
+
+        // A second class with its own teacher assignment/timetable so the
+        // "busy elsewhere" map actually has cross-class data to build, not
+        // an empty one.
+        $otherSubject = Subject::create(['name' => 'Art', 'code' => 'ART1']);
+        $this->makeTeacherAssignedTo($otherClass, $otherSubject);
+        app(TimetableService::class)->generate($otherClass, $this->term);
+
+        \Illuminate\Support\Facades\DB::enableQueryLog();
+        $result = app(TimetableService::class)->generate($class, $this->term);
+        $queryCount = count(\Illuminate\Support\Facades\DB::getQueryLog());
+        \Illuminate\Support\Facades\DB::disableQueryLog();
+
+        // One INSERT per created slot is unavoidable - what the fix removes
+        // is the *extra* read queries the old per-attempt busy-check made on
+        // top of that (up to subjectCount x 2 extra queries per slot, before
+        // even counting the insert). A handful of fixed setup reads plus one
+        // insert per row is the expected shape now.
+        $this->assertLessThanOrEqual(
+            $result['created'] + 8,
+            $queryCount,
+            "Expected roughly one query per created slot plus fixed overhead; saw {$queryCount} queries for {$result['created']} created slots."
+        );
+    }
+
     public function test_regenerate_only_fills_empty_slots_and_keeps_manual_edits(): void
     {
         $this->makePeriods(1);

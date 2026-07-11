@@ -6,6 +6,7 @@ use App\Models\ClassSubject;
 use App\Models\Period;
 use App\Models\SchoolClass;
 use App\Models\Subject;
+use App\Models\TeacherSubjectAssignment;
 use App\Models\Term;
 use App\Models\TimetableEntry;
 use App\Services\TimetableService;
@@ -104,6 +105,7 @@ class Show extends Component
     public function render()
     {
         $entries = collect();
+        $teacherMap = collect();
 
         if ($this->termId) {
             $entries = TimetableEntry::where('class_id', $this->class->id)
@@ -111,6 +113,12 @@ class Show extends Component
                 ->with(['subject', 'period'])
                 ->get()
                 ->keyBy(fn (TimetableEntry $entry) => "{$entry->day_of_week}:{$entry->period_id}");
+
+            // One query for the whole grid's teacher names instead of one
+            // per visible cell (TimetableEntry::teacher() re-queries every
+            // call) - re-rendered on every slot open/save/cancel, so this
+            // matters far more here than it would on a one-shot page load.
+            $teacherMap = TeacherSubjectAssignment::activeTeacherMap($this->termId, $this->class->id);
         }
 
         $classSubjects = $this->termId
@@ -121,6 +129,7 @@ class Show extends Component
             'periods' => Period::orderBy('sort_order')->get(),
             'terms' => Term::orderBy('name')->get(),
             'entries' => $entries,
+            'teacherMap' => $teacherMap,
             'classSubjects' => $classSubjects,
             'days' => TimetableEntry::DAYS,
         ]);

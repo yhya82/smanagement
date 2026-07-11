@@ -76,7 +76,7 @@
                                             class="w-full text-left rounded-md px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                                             @if ($entry)
                                                 <div class="font-medium text-gray-900 dark:text-gray-100">{{ $entry->subject->name }}</div>
-                                                <div class="text-xs text-gray-400 dark:text-gray-500">{{ $entry->teacher()?->user->name ?? 'No teacher assigned' }}</div>
+                                                <div class="text-xs text-gray-400 dark:text-gray-500">{{ $teacherMap->get("{$class->id}:{$entry->subject_id}")?->user->name ?? 'No teacher assigned' }}</div>
                                             @else
                                                 <span class="text-gray-300 dark:text-gray-600">-</span>
                                             @endif

@@ -35,7 +35,7 @@
                                 <td class="px-4 py-2 align-top">
                                     @if ($entry)
                                         <div class="font-medium text-gray-900 dark:text-gray-100">{{ $entry->subject->name }}</div>
-                                        <div class="text-xs text-gray-400 dark:text-gray-500">{{ $entry->teacher()?->user->name ?? 'No teacher assigned' }}</div>
+                                        <div class="text-xs text-gray-400 dark:text-gray-500">{{ $teacherMap->get("{$entry->class_id}:{$entry->subject_id}")?->user->name ?? 'No teacher assigned' }}</div>
                                     @else
                                         <span class="text-gray-300 dark:text-gray-600">-</span>
                                     @endif
