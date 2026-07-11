@@ -11,6 +11,7 @@ use App\Models\SchoolClass;
 use App\Models\Teacher;
 use App\Models\User;
 use App\Notifications\AttendanceEditRequestDecided;
+use App\Support\SafeNotifier;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -98,7 +99,7 @@ class AttendanceService
             throw new RuntimeException('This request has already been decided.');
         }
 
-        return DB::transaction(function () use ($request, $approvedBy) {
+        $record = DB::transaction(function () use ($request, $approvedBy) {
             $request->update([
                 'status' => ApprovalStatus::Approved,
                 'approved_by' => $approvedBy->id,
@@ -108,10 +109,12 @@ class AttendanceService
             $record = $request->attendanceRecord;
             $record->update(['status' => $request->requested_status]);
 
-            $request->requestedBy->notify(new AttendanceEditRequestDecided($request));
-
             return $record;
         });
+
+        SafeNotifier::send($request->requestedBy, new AttendanceEditRequestDecided($request));
+
+        return $record;
     }
 
     public function rejectEditRequest(AttendanceEditRequest $request, User $rejectedBy): AttendanceEditRequest
@@ -126,7 +129,7 @@ class AttendanceService
             'approved_at' => now(),
         ]);
 
-        $request->requestedBy->notify(new AttendanceEditRequestDecided($request));
+        SafeNotifier::send($request->requestedBy, new AttendanceEditRequestDecided($request));
 
         return $request;
     }

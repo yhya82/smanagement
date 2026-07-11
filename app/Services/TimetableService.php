@@ -11,6 +11,7 @@ use App\Models\Term;
 use App\Models\TimetableEntry;
 use App\Models\User;
 use App\Notifications\TimetableChanged;
+use App\Support\SafeNotifier;
 use Illuminate\Database\UniqueConstraintViolationException;
 use RuntimeException;
 
@@ -198,7 +199,7 @@ class TimetableService
         $teacher = $entry->teacher();
 
         if ($teacher && $teacher->user_id !== $changedBy->id) {
-            $teacher->user->notify(new TimetableChanged($entry, $cleared));
+            SafeNotifier::send($teacher->user, new TimetableChanged($entry, $cleared));
         }
     }
 }

@@ -12,6 +12,7 @@ use App\Models\Teacher;
 use App\Models\Term;
 use App\Models\User;
 use App\Notifications\ResultApproved;
+use App\Support\SafeNotifier;
 use RuntimeException;
 
 class ResultService
@@ -70,7 +71,7 @@ class ResultService
             'approved_at' => now(),
         ]);
 
-        $entry->student->user->notify(new ResultApproved($entry));
+        SafeNotifier::send($entry->student->user, new ResultApproved($entry));
 
         return $entry;
     }

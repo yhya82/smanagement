@@ -17,6 +17,7 @@ use App\Models\StudentApplication;
 use App\Models\User;
 use App\Notifications\ApplicationDecided;
 use App\Notifications\ApplicationSubmitted;
+use App\Support\SafeNotifier;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -38,7 +39,7 @@ class AdmissionService
             throw new InvalidArgumentException('At least one guardian is required.');
         }
 
-        return DB::transaction(function () use ($applicant, $guardians, $submittedBy) {
+        $application = DB::transaction(function () use ($applicant, $guardians, $submittedBy) {
             $application = StudentApplication::create([
                 ...$applicant,
                 'submitted_by' => $submittedBy->id,
@@ -49,10 +50,12 @@ class AdmissionService
                 $application->guardians()->create($guardian);
             }
 
-            $this->notifyApprovers($application);
-
             return $application->load('guardians');
         });
+
+        $this->notifyApprovers($application);
+
+        return $application;
     }
 
     /**
@@ -144,7 +147,7 @@ class AdmissionService
             throw new RuntimeException('Missing required documents: '.$missingDocumentLabels->implode(', '));
         }
 
-        return DB::transaction(function () use ($application, $assignedClass, $approvedBy) {
+        $student = DB::transaction(function () use ($application, $assignedClass, $approvedBy) {
             if (! $assignedClass->hasCapacityFor()) {
                 throw new RuntimeException("'{$assignedClass->name}' is at full capacity.");
             }
@@ -205,10 +208,12 @@ class AdmissionService
 
             $this->copyPassportPhotoToAvatar($application, $user);
 
-            $application->submittedBy->notify(new ApplicationDecided($application));
-
             return $student;
         });
+
+        SafeNotifier::send($application->submittedBy, new ApplicationDecided($application));
+
+        return $student;
     }
 
     /**
@@ -228,7 +233,7 @@ class AdmissionService
             'rejection_reason' => $reason,
         ]);
 
-        $application->submittedBy->notify(new ApplicationDecided($application));
+        SafeNotifier::send($application->submittedBy, new ApplicationDecided($application));
 
         return $application;
     }
@@ -246,7 +251,7 @@ class AdmissionService
         )->get();
 
         foreach ($approvers as $approver) {
-            $approver->notify(new ApplicationSubmitted($application));
+            SafeNotifier::send($approver, new ApplicationSubmitted($application));
         }
     }
 

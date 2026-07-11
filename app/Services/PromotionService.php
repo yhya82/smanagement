@@ -17,6 +17,7 @@ use App\Models\TermRanking;
 use App\Models\User;
 use App\Notifications\PromotionRejected;
 use App\Notifications\StudentPromoted;
+use App\Support\SafeNotifier;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -97,7 +98,7 @@ class PromotionService
             throw new RuntimeException('This promotion has already been decided.');
         }
 
-        return DB::transaction(function () use ($promotion, $approvedBy) {
+        $student = DB::transaction(function () use ($promotion, $approvedBy) {
             $promotion->update([
                 'status' => ApprovalStatus::Approved,
                 'approved_by' => $approvedBy->id,
@@ -123,10 +124,12 @@ class PromotionService
                 'source' => EnrollmentSource::Individual,
             ]);
 
-            $student->user->notify(new StudentPromoted($promotion));
-
             return $student;
         });
+
+        SafeNotifier::send($student->user, new StudentPromoted($promotion));
+
+        return $student;
     }
 
     public function reject(Promotion $promotion, User $rejectedBy): Promotion
@@ -141,7 +144,7 @@ class PromotionService
             'approved_at' => now(),
         ]);
 
-        $promotion->student->user->notify(new PromotionRejected($promotion));
+        SafeNotifier::send($promotion->student->user, new PromotionRejected($promotion));
 
         return $promotion;
     }
