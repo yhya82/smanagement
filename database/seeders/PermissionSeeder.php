@@ -28,6 +28,7 @@ class PermissionSeeder extends Seeder
         ['key' => 'teachers.manage', 'description' => 'Onboard and edit teacher profiles'],
         ['key' => 'teacher_assignments.manage', 'description' => 'Assign teachers to subjects and classes'],
         ['key' => 'document_types.manage', 'description' => 'Configure required admission document types'],
+        ['key' => 'timetable.manage', 'description' => 'Manage school periods and class timetables'],
 
         // Admission (SRS §7, §8)
         ['key' => 'applications.create', 'description' => 'Create and edit student applications'],

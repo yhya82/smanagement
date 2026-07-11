@@ -106,6 +106,9 @@
                             <span class="text-gray-300 dark:text-gray-600 mx-1">|</span>
                             <a href="{{ route('admin.classes.import', $class) }}" wire:navigate
                                 class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">Import</a>
+                            <span class="text-gray-300 dark:text-gray-600 mx-1">|</span>
+                            <a href="{{ route('admin.classes.timetable', $class) }}" wire:navigate
+                                class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">Timetable</a>
                         </td>
                     </tr>
                 @empty

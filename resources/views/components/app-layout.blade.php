@@ -70,7 +70,7 @@
                     <x-nav-link :href="route('admin.settings.edit')" :active="request()->routeIs('admin.settings.*')" icon="cog">Settings</x-nav-link>
 
                     @php
-                        $academicRoutes = ['admin.academic-years.*', 'admin.terms.*', 'admin.grade-levels.*', 'admin.subjects.*', 'admin.classes.*'];
+                        $academicRoutes = ['admin.academic-years.*', 'admin.terms.*', 'admin.grade-levels.*', 'admin.subjects.*', 'admin.classes.*', 'admin.periods.*'];
                         $academicActive = request()->routeIs($academicRoutes);
                     @endphp
                     <div x-data="{ open: {{ $academicActive ? 'true' : 'false' }} }">
@@ -88,18 +88,21 @@
                             <x-nav-link :href="route('admin.grade-levels.index')" :active="request()->routeIs('admin.grade-levels.*')" icon="academic-cap">Grade Levels</x-nav-link>
                             <x-nav-link :href="route('admin.subjects.index')" :active="request()->routeIs('admin.subjects.*')" icon="book-open">Subjects</x-nav-link>
                             <x-nav-link :href="route('admin.classes.index')" :active="request()->routeIs('admin.classes.*')" icon="rectangle-group">Classes</x-nav-link>
+                            <x-nav-link :href="route('admin.periods.index')" :active="request()->routeIs('admin.periods.*')" icon="table-cells">Periods</x-nav-link>
                         </div>
                     </div>
                 @endif
 
                 @if ($currentUser->hasRole('Teacher'))
                     <x-nav-link :href="route('teacher.dashboard')" :active="request()->routeIs('teacher.dashboard')" icon="home">Dashboard</x-nav-link>
+                    <x-nav-link :href="route('teacher.timetable')" :active="request()->routeIs('teacher.timetable')" icon="table-cells">My Timetable</x-nav-link>
                 @endif
 
                 @if ($currentUser->hasRole('Student'))
                     <x-nav-link :href="route('student.dashboard')" :active="request()->routeIs('student.dashboard')" icon="home">Dashboard</x-nav-link>
                     <x-nav-link :href="route('student.results')" :active="request()->routeIs('student.results')" icon="chart-bar">My Results</x-nav-link>
                     <x-nav-link :href="route('student.attendance')" :active="request()->routeIs('student.attendance')" icon="calendar">My Attendance</x-nav-link>
+                    <x-nav-link :href="route('student.timetable')" :active="request()->routeIs('student.timetable')" icon="table-cells">My Timetable</x-nav-link>
                 @endif
             </nav>
         </aside>

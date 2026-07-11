@@ -12,6 +12,7 @@ use App\Livewire\Admin\Classes\Subjects as ClassSubjects;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\GradeLevels\Index as GradeLevelsIndex;
 use App\Livewire\Admin\GradeReviewIndex;
+use App\Livewire\Admin\Periods\Index as PeriodsIndex;
 use App\Livewire\Admin\Promotions\Index as PromotionsIndex;
 use App\Livewire\Admin\PromotionRules\Index as PromotionRulesIndex;
 use App\Livewire\Admin\Rankings\Index as RankingsIndex;
@@ -24,6 +25,7 @@ use App\Livewire\Admin\Subjects\Index as SubjectsIndex;
 use App\Livewire\Admin\Teachers\Index as TeachersIndex;
 use App\Livewire\Admin\Teachers\Show as TeachersShow;
 use App\Livewire\Admin\Terms\Index as TermsIndex;
+use App\Livewire\Admin\Timetable\Show as TimetableShow;
 use App\Livewire\Admin\Users\Create as UsersCreate;
 use App\Livewire\Admin\Users\Index as UsersIndex;
 use App\Livewire\Admin\Users\Show as UsersShow;
@@ -42,6 +44,9 @@ Route::middleware(['auth', 'role:Administrator'])->prefix('admin')->name('admin.
     Route::get('classes/{class}/subjects', ClassSubjects::class)->name('classes.subjects');
     Route::get('classes/{class}/add-student', ClassAddStudent::class)->name('classes.add-student');
     Route::get('classes/{class}/import', ClassImport::class)->name('classes.import');
+    Route::get('classes/{class}/timetable', TimetableShow::class)->name('classes.timetable');
+
+    Route::get('periods', PeriodsIndex::class)->name('periods.index');
 
     Route::get('teachers', TeachersIndex::class)->name('teachers.index');
     Route::get('teachers/{teacher}', TeachersShow::class)->name('teachers.show');
