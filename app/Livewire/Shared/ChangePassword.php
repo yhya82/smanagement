@@ -39,6 +39,11 @@ class ChangePassword extends Component
 
         $user->forceFill(['password' => Hash::make($this->password), 'must_change_password' => false])->save();
 
+        // Keep the session making this request alive - only kill any other
+        // ones, in case the password was changed because another session
+        // (or device) was suspected compromised.
+        $user->invalidateOtherSessions(session()->getId());
+
         $this->reset(['current_password', 'password', 'password_confirmation']);
 
         session()->flash('status', 'Password updated.');

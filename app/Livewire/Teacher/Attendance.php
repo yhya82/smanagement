@@ -75,6 +75,12 @@ class Attendance extends Component
 
         $teacher = Auth::user()->teacher;
 
+        // The submitted array is a Livewire public property - re-check every
+        // key against the class roster at save time rather than trusting
+        // that it still only contains the student_ids this component was
+        // mounted with (a tampered request could add a foreign student_id).
+        $classStudentIds = Student::where('current_class_id', $this->class->id)->pluck('id')->all();
+
         $existingRecords = AttendanceRecord::where('class_id', $this->class->id)
             ->whereDate('date', $this->date)
             ->get()
@@ -83,6 +89,10 @@ class Attendance extends Component
         $toMark = [];
 
         foreach ($this->statuses as $studentId => $status) {
+            if (! in_array($studentId, $classStudentIds, true)) {
+                continue;
+            }
+
             $existing = $existingRecords->get($studentId);
 
             if (! $existing) {

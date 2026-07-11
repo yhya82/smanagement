@@ -106,9 +106,15 @@ class Show extends Component
             return;
         }
 
-        $this->user->update([
-            'status' => $this->user->status === UserStatus::Active ? UserStatus::Inactive : UserStatus::Active,
-        ]);
+        $newStatus = $this->user->status === UserStatus::Active ? UserStatus::Inactive : UserStatus::Active;
+
+        $this->user->update(['status' => $newStatus]);
+
+        // Same reasoning as resetPassword(): deactivating an account should
+        // actually stop it, not just block its next login attempt.
+        if ($newStatus === UserStatus::Inactive) {
+            $this->user->invalidateOtherSessions();
+        }
     }
 
     /**
@@ -127,6 +133,11 @@ class Show extends Component
             'password' => Hash::make($temporaryPassword),
             'must_change_password' => true,
         ])->save();
+
+        // A reset is meaningless if a session from before it keeps working -
+        // this is what actually locks out a suspected-compromised account,
+        // not the new password alone.
+        $this->user->invalidateOtherSessions();
 
         $this->temporaryPassword = $temporaryPassword;
     }

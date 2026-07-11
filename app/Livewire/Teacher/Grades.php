@@ -72,7 +72,15 @@ class Grades extends Component
     {
         $teacher = Auth::user()->teacher;
 
+        // Re-check every key against the class roster at save time - see
+        // the identical guard in Teacher/Attendance.php::save().
+        $classStudentIds = Student::where('current_class_id', $this->class->id)->pluck('id')->all();
+
         foreach (array_keys($this->entries) as $studentId) {
+            if (! in_array($studentId, $classStudentIds, true)) {
+                continue;
+            }
+
             foreach (ExamType::cases() as $examType) {
                 $values = $this->entries[$studentId][$examType->value];
 

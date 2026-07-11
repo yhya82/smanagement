@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
@@ -124,5 +125,22 @@ class User extends Authenticatable
             ->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))
             ->take(2)
             ->implode('');
+    }
+
+    /**
+     * Deletes this user's session rows directly (SESSION_DRIVER=database)
+     * rather than relying on Laravel's password-confirmation-based "log out
+     * other devices" flow, which only protects the device performing the
+     * logout - it can't help an admin locking out a *different* user's
+     * already-open session after a suspected-compromise password reset.
+     * A deleted session row makes the next request on that session
+     * unauthenticated, regardless of which route/endpoint it hits.
+     */
+    public function invalidateOtherSessions(?string $exceptSessionId = null): void
+    {
+        DB::table('sessions')
+            ->where('user_id', $this->id)
+            ->when($exceptSessionId, fn ($query) => $query->where('id', '!=', $exceptSessionId))
+            ->delete();
     }
 }

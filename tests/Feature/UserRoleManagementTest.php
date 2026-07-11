@@ -15,6 +15,8 @@ use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -164,6 +166,64 @@ class UserRoleManagementTest extends TestCase
             ->assertSet('temporaryPassword', fn ($value) => ! empty($value));
 
         $this->assertTrue($user->fresh()->must_change_password);
+    }
+
+    public function test_resetting_a_password_invalidates_the_users_existing_sessions(): void
+    {
+        $user = User::factory()->create(['status' => UserStatus::Active, 'must_change_password' => false]);
+        $user->roles()->attach(Role::where('name', 'Registrar')->first());
+
+        DB::table('sessions')->insert([
+            'id' => 'stale-session-id', 'user_id' => $user->id, 'ip_address' => '127.0.0.1',
+            'user_agent' => 'test', 'payload' => base64_encode('x'), 'last_activity' => time(),
+        ]);
+
+        Livewire::actingAs($this->admin)
+            ->test(UsersShow::class, ['user' => $user])
+            ->call('resetPassword');
+
+        $this->assertSame(0, DB::table('sessions')->where('user_id', $user->id)->count());
+    }
+
+    public function test_deactivating_a_user_invalidates_their_existing_sessions(): void
+    {
+        $user = User::factory()->create(['status' => UserStatus::Active]);
+        $user->roles()->attach(Role::where('name', 'Registrar')->first());
+
+        DB::table('sessions')->insert([
+            'id' => 'stale-session-id-2', 'user_id' => $user->id, 'ip_address' => '127.0.0.1',
+            'user_agent' => 'test', 'payload' => base64_encode('x'), 'last_activity' => time(),
+        ]);
+
+        Livewire::actingAs($this->admin)
+            ->test(UsersShow::class, ['user' => $user])
+            ->call('toggleStatus');
+
+        $this->assertSame(0, DB::table('sessions')->where('user_id', $user->id)->count());
+    }
+
+    public function test_changing_your_own_password_invalidates_other_sessions_but_keeps_the_current_one(): void
+    {
+        $user = User::factory()->create(['status' => UserStatus::Active, 'must_change_password' => false, 'password' => Hash::make('OldPass123!')]);
+
+        DB::table('sessions')->insert([
+            'id' => 'other-device-session', 'user_id' => $user->id, 'ip_address' => '127.0.0.1', 'user_agent' => 'test', 'payload' => base64_encode('x'), 'last_activity' => time(),
+        ]);
+
+        $component = Livewire::actingAs($user)->test(ChangePassword::class);
+        $currentSessionId = session()->getId();
+
+        DB::table('sessions')->insert([
+            'id' => $currentSessionId, 'user_id' => $user->id, 'ip_address' => '127.0.0.1', 'user_agent' => 'test', 'payload' => base64_encode('x'), 'last_activity' => time(),
+        ]);
+
+        $component->set('current_password', 'OldPass123!')
+            ->set('password', 'NewPass123!')
+            ->set('password_confirmation', 'NewPass123!')
+            ->call('updatePassword');
+
+        $this->assertSame(0, DB::table('sessions')->where('id', 'other-device-session')->count());
+        $this->assertSame(1, DB::table('sessions')->where('id', $currentSessionId)->count());
     }
 
     public function test_registrar_cannot_access_user_management(): void

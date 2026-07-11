@@ -58,7 +58,15 @@ class Remarks extends Component
 
     public function save(): void
     {
+        // Re-check every key against the class roster at save time - see
+        // the identical guard in Teacher/Attendance.php::save().
+        $classStudentIds = Student::where('current_class_id', $this->class->id)->pluck('id')->all();
+
         foreach ($this->remarks as $studentId => $remark) {
+            if (! in_array($studentId, $classStudentIds, true)) {
+                continue;
+            }
+
             $ranking = TermRanking::firstOrNew(['student_id' => $studentId, 'term_id' => $this->termId]);
             $ranking->class_id = $this->class->id;
             $ranking->remark = $remark !== '' ? $remark : null;
