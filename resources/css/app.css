@@ -1,5 +1,10 @@
 @import 'tailwindcss';
 
+/* Manual (class-based) dark mode instead of Tailwind v4's default
+   prefers-color-scheme media query - the toggle button controls a `dark`
+   class on <html>, independent of the OS theme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';

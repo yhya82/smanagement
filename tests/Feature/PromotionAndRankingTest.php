@@ -176,6 +176,7 @@ class PromotionAndRankingTest extends TestCase
 
         $this->assertSame('rejected', $promotion->fresh()->status->value);
         $this->assertSame($this->classA->id, $this->student->fresh()->current_class_id, 'rejected promotion must not move the student');
+        $this->assertTrue($this->student->user->notifications()->where('type', 'promotion_rejected')->exists());
     }
 
     public function test_registrar_cannot_access_promotions_rankings_or_rules(): void

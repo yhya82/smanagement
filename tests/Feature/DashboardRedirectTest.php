@@ -48,4 +48,16 @@ class DashboardRedirectTest extends TestCase
             ->get('/dashboard')
             ->assertRedirect(route('admin.dashboard'));
     }
+
+    public function test_the_dark_mode_toggle_renders_on_the_shared_layout(): void
+    {
+        $admin = User::factory()->create(['status' => UserStatus::Active]);
+        $admin->roles()->attach(Role::where('name', 'Administrator')->first());
+
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('darkMode')
+            ->assertSee('Toggle dark mode');
+    }
 }

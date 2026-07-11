@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Teacher;
 
+use App\Enums\ApprovalStatus;
+use App\Models\AttendanceEditRequest;
 use App\Models\Student;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -22,10 +24,15 @@ class Dashboard extends Component
         $classIds = $assignments->pluck('class_id')->unique();
         $studentCount = $classIds->isEmpty() ? 0 : Student::whereIn('current_class_id', $classIds)->count();
 
+        $pendingEditRequests = AttendanceEditRequest::where('requested_by', Auth::id())
+            ->where('status', ApprovalStatus::Pending)
+            ->count();
+
         return view('livewire.teacher.dashboard', [
             'teacher' => $teacher,
             'assignments' => $assignments,
             'studentCount' => $studentCount,
+            'pendingEditRequests' => $pendingEditRequests,
         ]);
     }
 }

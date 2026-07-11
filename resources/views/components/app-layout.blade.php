@@ -1,13 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en"
+    x-data="{
+        sidebarOpen: false,
+        darkMode: localStorage.getItem('theme')
+            ? localStorage.getItem('theme') === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches,
+    }"
+    x-init="$watch('darkMode', value => localStorage.setItem('theme', value ? 'dark' : 'light'))"
+    :class="{ dark: darkMode }">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title ?? \App\Models\SchoolSetting::current()->name }}</title>
+    {{-- Prevents a flash of the wrong theme before Alpine initializes. --}}
+    <script>
+        if (localStorage.getItem('theme')
+            ? localStorage.getItem('theme') === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="min-h-screen bg-gray-50 text-gray-900" x-data="{ sidebarOpen: false }">
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     @auth
         @php
             $currentUser = auth()->user();
@@ -22,13 +38,13 @@
         {{-- Sidebar --}}
         <aside
             :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-            class="fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 flex flex-col transform transition-transform duration-200 ease-in-out md:translate-x-0">
-            <div class="h-14 flex items-center gap-2 px-4 border-b border-gray-200 shrink-0">
+            class="fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transform transition-transform duration-200 ease-in-out md:translate-x-0">
+            <div class="h-14 flex items-center gap-2 px-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
                 <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-2 min-w-0">
                     @if ($schoolSetting->logoUrl())
                         <img src="{{ $schoolSetting->logoUrl() }}" class="w-7 h-7 rounded object-cover shrink-0" alt="">
                     @endif
-                    <span class="font-semibold text-gray-900 truncate">{{ $schoolSetting->name }}</span>
+                    <span class="font-semibold text-gray-900 dark:text-gray-100 truncate">{{ $schoolSetting->name }}</span>
                 </a>
             </div>
 
@@ -59,14 +75,14 @@
                     @endphp
                     <div x-data="{ open: {{ $academicActive ? 'true' : 'false' }} }">
                         <button type="button" x-on:click="open = !open"
-                            class="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100">
                             <span class="flex items-center gap-2.5">
                                 <x-icon name="building-library" class="size-5 shrink-0" />
                                 <span>Academic Structure</span>
                             </span>
                             <svg :class="open ? 'rotate-180' : ''" class="size-3 shrink-0 transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
                         </button>
-                        <div x-show="open" x-cloak class="mt-1 ml-3 space-y-1 border-l border-gray-100 pl-3">
+                        <div x-show="open" x-cloak class="mt-1 ml-3 space-y-1 border-l border-gray-100 dark:border-gray-700 pl-3">
                             <x-nav-link :href="route('admin.academic-years.index')" :active="request()->routeIs('admin.academic-years.*')" icon="calendar">Academic Years</x-nav-link>
                             <x-nav-link :href="route('admin.terms.index')" :active="request()->routeIs('admin.terms.*')" icon="clock">Terms</x-nav-link>
                             <x-nav-link :href="route('admin.grade-levels.index')" :active="request()->routeIs('admin.grade-levels.*')" icon="academic-cap">Grade Levels</x-nav-link>
@@ -90,8 +106,8 @@
 
         {{-- Main column --}}
         <div class="flex flex-col min-h-screen md:pl-64">
-            <header class="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 sticky top-0 z-20">
-                <button type="button" x-on:click="sidebarOpen = true" class="md:hidden text-gray-500 hover:text-gray-700">
+            <header class="h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 sticky top-0 z-20">
+                <button type="button" x-on:click="sidebarOpen = true" class="md:hidden text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
                     <svg class="size-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
                     </svg>
@@ -100,8 +116,15 @@
                 <div class="flex-1"></div>
 
                 <div class="flex items-center gap-3">
+                    <button type="button" x-on:click="darkMode = !darkMode"
+                        class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                        title="Toggle dark mode">
+                        <span x-show="!darkMode"><x-icon name="moon" class="size-5" /></span>
+                        <span x-show="darkMode" x-cloak><x-icon name="sun" class="size-5" /></span>
+                    </button>
+
                     <a href="{{ route('notifications') }}" wire:navigate
-                        class="relative text-gray-500 hover:text-gray-700 p-1.5 rounded-full hover:bg-gray-100">
+                        class="relative text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
                         <x-icon name="bell" class="size-5" />
                         @if ($unreadCount > 0)
                             <span class="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-medium">
@@ -111,27 +134,27 @@
                     </a>
 
                     <div class="relative" x-data="{ open: false }" x-on:click.outside="open = false">
-                        <button type="button" x-on:click="open = !open" class="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900">
+                        <button type="button" x-on:click="open = !open" class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
                             @if ($currentUser->avatarUrl())
                                 <img src="{{ $currentUser->avatarUrl() }}" class="w-7 h-7 rounded-full object-cover" alt="{{ $currentUser->name }}">
                             @else
-                                <span class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-medium">
+                                <span class="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 flex items-center justify-center text-xs font-medium">
                                     {{ $currentUser->initials() }}
                                 </span>
                             @endif
                             <span class="hidden sm:inline max-w-[10rem] truncate">{{ $currentUser->name }}</span>
                             <svg class="size-3 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
                         </button>
-                        <div x-show="open" x-cloak class="absolute right-0 mt-2 w-52 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-10">
-                            <div class="px-4 py-2 border-b border-gray-100">
-                                <p class="text-sm font-medium text-gray-900 truncate">{{ $currentUser->name }}</p>
-                                <p class="text-xs text-gray-500 truncate">{{ $currentUser->email }}</p>
+                        <div x-show="open" x-cloak class="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-10">
+                            <div class="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ $currentUser->name }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $currentUser->email }}</p>
                             </div>
-                            <a href="{{ route('profile') }}" wire:navigate class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">View Profile</a>
-                            <a href="{{ route('password.change') }}" wire:navigate class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Change Password</a>
+                            <a href="{{ route('profile') }}" wire:navigate class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">View Profile</a>
+                            <a href="{{ route('password.change') }}" wire:navigate class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Change Password</a>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
-                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Log out</button>
+                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Log out</button>
                             </form>
                         </div>
                     </div>

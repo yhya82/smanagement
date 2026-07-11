@@ -9,6 +9,7 @@ use App\Models\AttendanceRecord;
 use App\Models\SchoolClass;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Notifications\AttendanceEditRequestDecided;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -102,6 +103,8 @@ class AttendanceService
             $record = $request->attendanceRecord;
             $record->update(['status' => $request->requested_status]);
 
+            $request->requestedBy->notify(new AttendanceEditRequestDecided($request));
+
             return $record;
         });
     }
@@ -117,6 +120,8 @@ class AttendanceService
             'approved_by' => $rejectedBy->id,
             'approved_at' => now(),
         ]);
+
+        $request->requestedBy->notify(new AttendanceEditRequestDecided($request));
 
         return $request;
     }

@@ -15,6 +15,7 @@ use App\Models\Student;
 use App\Models\Term;
 use App\Models\TermRanking;
 use App\Models\User;
+use App\Notifications\PromotionRejected;
 use App\Notifications\StudentPromoted;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -139,6 +140,8 @@ class PromotionService
             'approved_by' => $rejectedBy->id,
             'approved_at' => now(),
         ]);
+
+        $promotion->student->user->notify(new PromotionRejected($promotion));
 
         return $promotion;
     }

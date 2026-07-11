@@ -6,7 +6,9 @@ use App\Enums\AttendanceStatus;
 use App\Enums\Gender;
 use App\Enums\UserStatus;
 use App\Livewire\Admin\AttendanceEditRequests\Index as AttendanceEditRequestsIndex;
+use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Teacher\Attendance as TeacherAttendance;
+use App\Livewire\Teacher\Dashboard as TeacherDashboard;
 use App\Models\AcademicYear;
 use App\Models\AttendanceRecord;
 use App\Models\GradeLevel;
@@ -127,6 +129,10 @@ class AttendanceEditRequestTest extends TestCase
 
         $this->assertSame('approved', $request->fresh()->status->value);
         $this->assertSame('present', $this->lockedRecord->fresh()->status->value);
+        $this->assertTrue(
+            $this->teacherUser->notifications()->where('type', 'attendance_edit_request_decided')->exists(),
+            'the requesting teacher must be notified of the decision'
+        );
     }
 
     public function test_admin_can_reject_an_edit_request(): void
@@ -141,6 +147,7 @@ class AttendanceEditRequestTest extends TestCase
 
         $this->assertSame('rejected', $request->fresh()->status->value);
         $this->assertSame('absent', $this->lockedRecord->fresh()->status->value, 'rejected request must not change the record');
+        $this->assertTrue($this->teacherUser->notifications()->where('type', 'attendance_edit_request_decided')->exists());
     }
 
     public function test_registrar_cannot_access_the_edit_request_queue(): void
@@ -170,5 +177,20 @@ class AttendanceEditRequestTest extends TestCase
             ->assertForbidden();
 
         $this->assertSame('pending', $request->fresh()->status->value);
+    }
+
+    public function test_admin_and_teacher_dashboards_show_pending_edit_request_counts(): void
+    {
+        app(\App\Services\AttendanceService::class)->requestEdit(
+            $this->lockedRecord, $this->teacherUser, AttendanceStatus::Present, 'Marked absent by mistake'
+        );
+
+        Livewire::actingAs($this->admin)
+            ->test(AdminDashboard::class)
+            ->assertSee('Pending attendance edit requests');
+
+        Livewire::actingAs($this->teacherUser)
+            ->test(TeacherDashboard::class)
+            ->assertSee('Pending attendance edit requests');
     }
 }
