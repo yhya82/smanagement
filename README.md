@@ -1,59 +1,88 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# School Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel 12 + Livewire 4 application covering admissions, enrollment, attendance, grading, rankings, promotions, teacher/timetable management, and a school calendar - built around a custom role/permission system rather than a fixed set of hardcoded roles.
 
-## About Laravel
+## Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Backend:** Laravel 12 (PHP 8.2+), Livewire 4 for interactive UI (no separate JS framework/API layer)
+- **Frontend:** Tailwind CSS v4, Vite, Alpine.js (bundled with Livewire)
+- **Database:** MySQL in this project's own dev environment; SQLite works too (see below) and is what the test suite always uses
+- **Queue/Cache/Sessions:** database driver by default (see [Queue worker](#queue-worker) below - this matters, not just config trivia)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Setup
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```bash
+composer setup
+```
 
-## Learning Laravel
+This single command (defined in `composer.json`) does everything: installs PHP/Node dependencies, copies `.env.example` to `.env`, generates an app key, runs migrations, **seeds the database**, and builds frontend assets. The seed step is not optional — without it there are no roles, no permissions, and no way to log in at all (see [First login](#first-login)).
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+If you'd rather run the steps yourself:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan db:seed
+npm install && npm run build
+```
 
-## Laravel Sponsors
+### Database
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+`.env.example` defaults to SQLite (`DB_CONNECTION=sqlite`) for the fastest possible local start — create an empty file at the path in `DB_DATABASE` and migrations will use it directly. To use MySQL instead, set `DB_CONNECTION=mysql` and the usual `DB_HOST`/`DB_PORT`/`DB_DATABASE`/`DB_USERNAME`/`DB_PASSWORD`, then create the database before running `composer setup`. Both are exercised regularly in this codebase (MySQL in local dev, SQLite `:memory:` for the entire automated test suite — see `phpunit.xml`), so migrations are written to behave the same on both.
 
-### Premium Partners
+### First login
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+`AdminUserSeeder` creates the only account that can create every other account:
 
-## Contributing
+```
+email: admin@example.com
+password: ChangeMe123!
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+You'll be forced to change this password on first login (`must_change_password` is set on every seeded/onboarded account). Every other Administrator, Registrar, Teacher, and Student account is created *through the app itself* from there — there's no other seeded user.
 
-## Code of Conduct
+### Running the dev servers
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+composer dev
+```
 
-## Security Vulnerabilities
+Runs the Laravel dev server, Vite, a queue worker, and `php artisan pail` (log tailing) together. See [Queue worker](#queue-worker) for why the queue worker specifically matters here.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Running tests
 
-## License
+```bash
+php artisan test
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+The whole suite runs against an in-memory SQLite database (`phpunit.xml`) with `array` cache/session/queue drivers, so it never touches real infrastructure. `tests/Feature` covers HTTP/Livewire/policy behavior end-to-end; `tests/Unit` covers business logic in isolation (ranking math, promotion rule matching, notification failure handling, cache invalidation) without going through a controller or component. CI (`.github/workflows/tests.yml`) runs the full suite on every push/PR to `master`.
+
+## Queue worker
+
+Two scheduled jobs depend on an actual queue worker process running continuously, not just the app being deployed:
+
+- **`LockAttendanceRecordsJob`** (daily) — locks attendance records past their 7-day direct-edit window. If this never runs, attendance edits stay open indefinitely past the window the SRS requires.
+- **`PurgeRejectedApplicationDocumentsJob`** (daily) — purges a rejected applicant's documents/guardian PII 90 days after the decision. If this never runs, that retention policy silently never takes effect.
+
+Both jobs log a completion summary and log `failed()` calls, so if a worker *is* running you'll see evidence of it in the logs — but if no worker is running at all, nothing will tell you that on its own. In production, run `php artisan queue:work` (or Horizon) as a supervised, always-on process — a one-off deploy script or `composer setup` alone will never start one.
+
+## Roles & permissions
+
+Not Spatie — a small custom system: `roles`, `permissions`, `role_permissions`, `user_roles` tables. `User::hasPermission('some.key')` / `hasRole('Administrator')` are the two checks everything else builds on. Administrator gets an automatic bypass for every ability *except* `update`/`delete` (see the comment in `app/Providers/AppServiceProvider.php`) — several policies hardcode invariants (the 7-day attendance edit lock, hard-delete protection, homeroom-teacher-only remarks) that must hold even for Administrator, so those two abilities always fall through to the real policy method instead of being waved through.
+
+Four built-in roles ship via `RoleSeeder`: **Administrator**, **Registrar**, **Teacher**, **Student**. Additional custom roles (e.g. a Librarian with a narrower permission set) can be created through the admin UI — `Role::scopeAssignableViaUserManagement()` is what keeps Teacher/Student out of that flow, since those two are provisioned through their own dedicated onboarding processes instead.
+
+## Domain overview
+
+- **Admissions** (`AdmissionService`) — application intake by a Registrar, document upload, Administrator approval/rejection, which provisions the student's user account and class placement in one transaction.
+- **Attendance** (`AttendanceService`) — teacher-marked per class/day, a 7-day direct-edit window enforced by `LockAttendanceRecordsJob`, then an edit-request/approval flow after that. Blocked entirely on days marked as a public holiday in the school calendar.
+- **Grading & ranking** (`ResultService`, `RankingService`) — midterm and final are tracked and approved independently per subject (they happen at different points in the term); `RankingService` combines both into one term average per subject using the school's configured midterm/final weighting, or uses whichever one is approved so far as an interim score.
+- **Promotions** (`PromotionService`) — evaluates a student's term ranking against `PromotionRule`s for their grade level, always creating a *pending* promotion regardless of how it was triggered — an Administrator approves every one.
+- **Timetable** (`TimetableService`) — auto-generates a class's weekly schedule by round-robining its assigned, teacher-staffed subjects across empty slots (never overwriting an existing slot, so it's always safe to re-run), or an admin can set/clear individual slots by hand. Rejects any placement that would double-book a teacher into two classes at once.
+- **School calendar** (`CalendarEvent`) — per-term holidays and events, managed from Settings. A holiday is enforced at the `AttendanceService` level, not just the UI.
+
+## Notifications
+
+All in-app (a custom `DatabaseChannel`, not Laravel's default polymorphic notifications table). There is no self-service password reset — every reset is admin-triggered (`Admin/Users/Show::resetPassword()`), which is why `MAIL_MAILER=log` in `.env.example` is a non-issue rather than an oversight: no code path in this app currently sends real email.
