@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\Gender;
 use App\Enums\UserStatus;
+use App\Livewire\Admin\Classes\Subjects as ClassSubjectsComponent;
 use App\Livewire\Admin\Periods\Index as PeriodsIndex;
 use App\Livewire\Admin\Timetable\Show as TimetableShow;
 use App\Livewire\Student\Timetable as StudentTimetable;
@@ -244,6 +245,44 @@ class TimetableTest extends TestCase
         $this->assertSame(1, TimetableEntry::where('class_id', $class->id)->count());
 
         app(TimetableService::class)->setEntry($class, $this->term, $period, 'monday', null, $this->admin);
+        $this->assertSame(0, TimetableEntry::where('class_id', $class->id)->count());
+    }
+
+    public function test_clearing_a_slot_notifies_the_teacher_it_was_cleared_not_reassigned(): void
+    {
+        $this->makePeriods(1);
+        $class = $this->makeClass();
+        $math = Subject::create(['name' => 'Mathematics', 'code' => 'MATH1']);
+        $teacher = $this->makeTeacherAssignedTo($class, $math);
+        $period = Period::first();
+
+        app(TimetableService::class)->setEntry($class, $this->term, $period, 'monday', $math, $this->admin);
+        $teacher->user->notifications()->delete();
+
+        app(TimetableService::class)->setEntry($class, $this->term, $period, 'monday', null, $this->admin);
+
+        $notification = $teacher->user->notifications()->where('type', 'timetable_changed')->firstOrFail();
+        $this->assertStringContainsString('cleared', $notification->message);
+        $this->assertStringNotContainsString('is now Mathematics', $notification->message);
+    }
+
+    public function test_removing_a_subject_from_a_class_deletes_its_orphaned_timetable_entries(): void
+    {
+        $this->makePeriods(1);
+        $class = $this->makeClass();
+        $math = Subject::create(['name' => 'Mathematics', 'code' => 'MATH1']);
+        $this->makeTeacherAssignedTo($class, $math);
+        $period = Period::first();
+
+        app(TimetableService::class)->setEntry($class, $this->term, $period, 'monday', $math, $this->admin);
+        $this->assertSame(1, TimetableEntry::where('class_id', $class->id)->count());
+
+        $classSubject = ClassSubject::where('class_id', $class->id)->where('subject_id', $math->id)->firstOrFail();
+
+        Livewire::actingAs($this->admin)
+            ->test(ClassSubjectsComponent::class, ['class' => $class])
+            ->call('remove', $classSubject->id);
+
         $this->assertSame(0, TimetableEntry::where('class_id', $class->id)->count());
     }
 

@@ -11,6 +11,7 @@ use App\Models\Term;
 use App\Models\TimetableEntry;
 use App\Models\User;
 use App\Notifications\TimetableChanged;
+use Illuminate\Database\UniqueConstraintViolationException;
 use RuntimeException;
 
 class TimetableService
@@ -79,11 +80,18 @@ class TimetableService
                     $cursor++;
 
                     if (! $this->teacherIsBusyElsewhere($class, $term, $day, $period, $subjectId)) {
-                        TimetableEntry::create([
-                            'class_id' => $class->id, 'term_id' => $term->id, 'period_id' => $period->id,
-                            'day_of_week' => $day, 'subject_id' => $subjectId,
-                        ]);
-                        $created++;
+                        try {
+                            TimetableEntry::create([
+                                'class_id' => $class->id, 'term_id' => $term->id, 'period_id' => $period->id,
+                                'day_of_week' => $day, 'subject_id' => $subjectId,
+                            ]);
+                            $created++;
+                        } catch (UniqueConstraintViolationException) {
+                            // Another concurrent generate()/setEntry() call filled this
+                            // exact slot after our $existingSlotKeys snapshot was taken -
+                            // it's no longer empty, not a failure to schedule it.
+                        }
+
                         $placed = true;
 
                         break;
@@ -119,7 +127,7 @@ class TimetableService
         if (! $subject) {
             if ($existing) {
                 $existing->delete();
-                $this->notifyAffectedTeacher($existing, $changedBy);
+                $this->notifyAffectedTeacher($existing, $changedBy, cleared: true);
             }
 
             return null;
@@ -161,12 +169,12 @@ class TimetableService
             ->contains(fn (TimetableEntry $entry) => $entry->teacher()?->id === $teacher->id);
     }
 
-    private function notifyAffectedTeacher(TimetableEntry $entry, User $changedBy): void
+    private function notifyAffectedTeacher(TimetableEntry $entry, User $changedBy, bool $cleared = false): void
     {
         $teacher = $entry->teacher();
 
         if ($teacher && $teacher->user_id !== $changedBy->id) {
-            $teacher->user->notify(new TimetableChanged($entry));
+            $teacher->user->notify(new TimetableChanged($entry, $cleared));
         }
     }
 }

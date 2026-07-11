@@ -1,18 +1,20 @@
 <div>
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center justify-between mb-2">
         <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Timetable - {{ $class->name }}</h1>
-        <div class="flex items-center gap-3">
-            <select wire:model.live="termId" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm text-sm">
-                <option value="">Select term...</option>
-                @foreach ($terms as $term)
-                    <option value="{{ $term->id }}">{{ $term->name }}</option>
-                @endforeach
-            </select>
-            <button type="button" wire:click="generate" wire:loading.attr="disabled"
-                class="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-indigo-500 disabled:opacity-50">
-                Auto-generate
-            </button>
-        </div>
+        <a href="{{ route('admin.classes.index') }}" wire:navigate class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">Back to classes</a>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 mb-6">
+        <select wire:model.live="termId" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm text-sm">
+            <option value="">Select term...</option>
+            @foreach ($terms as $term)
+                <option value="{{ $term->id }}">{{ $term->name }}</option>
+            @endforeach
+        </select>
+        <button type="button" wire:click="generate" wire:loading.attr="disabled"
+            class="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-indigo-500 disabled:opacity-50">
+            Auto-generate
+        </button>
     </div>
 
     @if ($generateResult)

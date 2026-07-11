@@ -6,6 +6,7 @@ use App\Models\ClassSubject;
 use App\Models\SchoolClass;
 use App\Models\Subject;
 use App\Models\Term;
+use App\Models\TimetableEntry;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -67,6 +68,15 @@ class Subjects extends Component
         $this->authorize('delete', $classSubject);
 
         abort_unless($classSubject->class_id === $this->class->id, 404);
+
+        // A subject no longer assigned to this class has no business still
+        // occupying timetable slots for it - otherwise it'd keep showing
+        // (and the admin grid's subject picker only offers still-assigned
+        // subjects, so a stale slot couldn't even be edited back).
+        TimetableEntry::where('class_id', $classSubject->class_id)
+            ->where('term_id', $classSubject->term_id)
+            ->where('subject_id', $classSubject->subject_id)
+            ->delete();
 
         $classSubject->delete();
     }
