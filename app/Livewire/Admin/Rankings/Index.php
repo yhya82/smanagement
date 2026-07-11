@@ -3,11 +3,12 @@
 namespace App\Livewire\Admin\Rankings;
 
 use App\Enums\ResultStatus;
+use App\Jobs\ComputeRankingsJob;
 use App\Models\ResultEntry;
 use App\Models\SchoolClass;
 use App\Models\Term;
 use App\Models\TermRanking;
-use App\Services\RankingService;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -48,7 +49,14 @@ class Index extends Component
         $this->resetPage();
     }
 
-    public function compute(RankingService $rankingService): void
+    /**
+     * The actual per-class computation is dispatched to a queued job -
+     * doing it here, synchronously, risked a request timeout at a school
+     * with enough classes and result history. The empty-results check
+     * stays here since it's a cheap, fast rejection worth giving
+     * immediately rather than after a round trip through the queue.
+     */
+    public function compute(): void
     {
         $this->authorize('viewAny', TermRanking::class);
 
@@ -58,27 +66,19 @@ class Index extends Component
 
         $term = Term::findOrFail($this->termId);
 
-        $classIds = ResultEntry::where('term_id', $term->id)
+        $hasApprovedResults = ResultEntry::where('term_id', $term->id)
             ->where('status', ResultStatus::Approved)
-            ->distinct()
-            ->pluck('class_id');
+            ->exists();
 
-        if ($classIds->isEmpty()) {
+        if (! $hasApprovedResults) {
             $this->computeResult = "No approved results found for '{$term->name}'.";
 
             return;
         }
 
-        $classCount = 0;
-        $rankingCount = 0;
+        ComputeRankingsJob::dispatch($term, Auth::user());
 
-        foreach (SchoolClass::whereIn('id', $classIds)->get() as $class) {
-            $rankings = $rankingService->computeForClassTerm($class, $term);
-            $classCount++;
-            $rankingCount += $rankings->count();
-        }
-
-        $this->computeResult = "Computed {$rankingCount} ranking(s) across {$classCount} class(es) for '{$term->name}'.";
+        $this->computeResult = "Ranking computation for '{$term->name}' queued - you'll get a notification when it's done.";
     }
 
     public function render()

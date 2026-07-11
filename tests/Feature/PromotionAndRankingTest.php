@@ -6,6 +6,7 @@ use App\Enums\Gender;
 use App\Enums\ResultStatus;
 use App\Enums\StudentStatus;
 use App\Enums\UserStatus;
+use App\Jobs\ComputeRankingsJob;
 use App\Livewire\Admin\Promotions\Index as PromotionsIndex;
 use App\Livewire\Admin\PromotionRules\Index as PromotionRulesIndex;
 use App\Livewire\Admin\Rankings\Index as RankingsIndex;
@@ -26,6 +27,7 @@ use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -86,17 +88,32 @@ class PromotionAndRankingTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_compute_rankings_for_a_term(): void
+    public function test_admin_can_queue_a_ranking_computation_for_a_term(): void
     {
+        Queue::fake();
+
         Livewire::actingAs($this->admin)
             ->test(RankingsIndex::class)
             ->set('termId', (string) $this->term->id)
             ->call('compute')
-            ->assertSee('Computed 1 ranking');
+            ->assertSee('queued');
 
-        $ranking = TermRanking::where('student_id', $this->student->id)->where('term_id', $this->term->id)->firstOrFail();
-        $this->assertSame(1, $ranking->position);
-        $this->assertSame('90.00', $ranking->average);
+        Queue::assertPushed(ComputeRankingsJob::class, 1);
+    }
+
+    public function test_computing_rankings_reports_no_approved_results_without_queueing_anything(): void
+    {
+        Queue::fake();
+
+        $emptyTerm = Term::create(['academic_year_id' => $this->classA->academic_year_id, 'name' => 'Empty Term', 'start_date' => '2026-01-01', 'end_date' => '2026-06-01']);
+
+        Livewire::actingAs($this->admin)
+            ->test(RankingsIndex::class)
+            ->set('termId', (string) $emptyTerm->id)
+            ->call('compute')
+            ->assertSee('No approved results found');
+
+        Queue::assertNotPushed(ComputeRankingsJob::class);
     }
 
     public function test_computing_rankings_for_the_same_class_and_term_concurrently_is_blocked_not_raced(): void

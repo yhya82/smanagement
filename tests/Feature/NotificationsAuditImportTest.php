@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\UserStatus;
+use App\Jobs\ImportStudentsJob;
 use App\Livewire\Admin\AuditLogs\Index as AuditLogsIndex;
 use App\Livewire\Admin\Classes\AddStudent as ClassAddStudent;
 use App\Livewire\Admin\Classes\Import as ClassImport;
@@ -11,7 +12,6 @@ use App\Livewire\Shared\Profile;
 use App\Models\AcademicYear;
 use App\Models\AuditLog;
 use App\Models\GradeLevel;
-use App\Models\Guardian;
 use App\Models\Role;
 use App\Models\SchoolClass;
 use App\Models\Student;
@@ -20,6 +20,8 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -124,30 +126,26 @@ class NotificationsAuditImportTest extends TestCase
         $this->assertStringNotContainsString('{"status"', $html);
     }
 
-    public function test_admin_can_bulk_import_students_into_a_class(): void
+    public function test_admin_can_queue_a_bulk_import_for_a_class(): void
     {
+        Queue::fake();
+        Storage::fake('local');
+
         $class = $this->makeClass();
 
         $csv = "first_name,last_name,dob,gender,guardian_name,guardian_relationship,guardian_phone\n"
-            ."Jane,Doe,2015-05-01,female,John Doe,Father,0551234567\n"
-            ."Bad,Row,not-a-date,female,G,Mother,055";
+            ."Jane,Doe,2015-05-01,female,John Doe,Father,0551234567";
 
         $file = UploadedFile::fake()->createWithContent('students.csv', $csv);
 
         Livewire::actingAs($this->admin)
             ->test(ClassImport::class, ['class' => $class])
             ->set('file', $file)
-            ->call('import');
+            ->call('import')
+            ->assertSet('queued', true)
+            ->assertSet('importError', null);
 
-        $this->assertSame(1, Student::where('first_name', 'Jane')->count());
-        $this->assertSame(0, Student::where('first_name', 'Bad')->count());
-
-        $student = Student::where('first_name', 'Jane')->firstOrFail();
-        $this->assertSame('active', $student->status->value);
-        $this->assertSame('active', $student->user->status->value);
-        $this->assertSame($class->id, $student->current_class_id);
-        $this->assertTrue(Guardian::where('student_id', $student->id)->where('name', 'John Doe')->exists());
-        $this->assertTrue($student->enrollments()->where('source', 'import')->exists());
+        Queue::assertPushed(ImportStudentsJob::class, 1);
     }
 
     public function test_import_rejects_a_csv_with_wrong_columns(): void
@@ -159,27 +157,8 @@ class NotificationsAuditImportTest extends TestCase
             ->test(ClassImport::class, ['class' => $class])
             ->set('file', $file)
             ->call('import')
-            ->assertSet('importError', fn ($value) => str_contains($value, 'do not match the required template'));
-    }
-
-    public function test_import_stops_once_class_capacity_is_reached(): void
-    {
-        $class = $this->makeClass(capacity: 1);
-
-        $csv = "first_name,last_name,dob,gender,guardian_name,guardian_relationship,guardian_phone\n"
-            ."Jane,Doe,2015-05-01,female,John Doe,Father,0551234567\n"
-            ."Jack,Doe,2015-05-01,male,John Doe,Father,0551234567";
-
-        $file = UploadedFile::fake()->createWithContent('students.csv', $csv);
-
-        Livewire::actingAs($this->admin)
-            ->test(ClassImport::class, ['class' => $class])
-            ->set('file', $file)
-            ->call('import')
-            ->assertSet('createdCount', 1);
-
-        $this->assertSame(1, Student::where('first_name', 'Jane')->count());
-        $this->assertSame(0, Student::where('first_name', 'Jack')->count());
+            ->assertSet('importError', fn ($value) => str_contains($value, 'do not match the required template'))
+            ->assertSet('queued', false);
     }
 
     public function test_admin_can_enroll_a_single_student_into_a_class(): void

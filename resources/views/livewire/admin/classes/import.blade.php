@@ -39,33 +39,9 @@
         </button>
     </div>
 
-    @if ($createdCount !== null)
+    @if ($queued)
         <div class="mt-6 rounded-md bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 p-3 text-sm text-green-700 dark:text-green-400">
-            Created {{ $createdCount }} student(s).
-        </div>
-    @endif
-
-    @if (count($importErrors) > 0)
-        <div class="mt-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-                <h2 class="text-sm font-medium text-gray-900 dark:text-gray-100">Rows skipped ({{ count($importErrors) }})</h2>
-            </div>
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-                <thead class="bg-gray-50 dark:bg-gray-700/50">
-                    <tr>
-                        <th class="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Row</th>
-                        <th class="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Errors</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                    @foreach ($importErrors as $error)
-                        <tr>
-                            <td class="px-4 py-2 text-gray-500 dark:text-gray-400">{{ $error['row'] }}</td>
-                            <td class="px-4 py-2 text-red-600 dark:text-red-400">{{ implode('; ', $error['messages']) }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+            Import queued - you'll get a notification with the result once it's done processing.
         </div>
     @endif
 </div>

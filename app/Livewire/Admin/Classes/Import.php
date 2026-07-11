@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Admin\Classes;
 
+use App\Jobs\ImportStudentsJob;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Services\StudentImportService;
+use Illuminate\Support\Facades\Auth;
 use InvalidArgumentException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -19,12 +21,9 @@ class Import extends Component
 
     public $file;
 
-    public ?int $createdCount = null;
-
-    /** @var list<array{row: int, messages: list<string>}> */
-    public array $importErrors = [];
-
     public ?string $importError = null;
+
+    public bool $queued = false;
 
     public function mount(SchoolClass $class): void
     {
@@ -33,22 +32,35 @@ class Import extends Component
         $this->class = $class;
     }
 
+    /**
+     * Validates the file synchronously (wrong columns, wrong extension -
+     * fast, cheap checks worth failing immediately on) then hands the
+     * actual row-by-row processing to a queued job rather than running a
+     * potentially large import inside this request. The upload only
+     * exists as a Livewire temporary file for the lifetime of this
+     * request, so it's persisted to a real disk first - the job cleans it
+     * up once it's done with it.
+     */
     public function import(StudentImportService $importService): void
     {
         $this->importError = null;
-        $this->createdCount = null;
-        $this->importErrors = [];
+        $this->queued = false;
 
         $this->validate(['file' => ['required', 'file', 'mimes:csv,txt', 'max:2048']]);
 
         try {
-            $result = $importService->import($this->file->getRealPath(), $this->class);
-            $this->createdCount = $result['created'];
-            $this->importErrors = $result['errors'];
+            $importService->assertValidHeader($this->file->getRealPath());
         } catch (InvalidArgumentException $e) {
             $this->importError = $e->getMessage();
+
+            return;
         }
 
+        $storedPath = $this->file->store('imports', 'local');
+
+        ImportStudentsJob::dispatch($this->class, $storedPath, Auth::user());
+
+        $this->queued = true;
         $this->reset('file');
     }
 

@@ -37,6 +37,31 @@ class StudentImportService
     ];
 
     /**
+     * Cheap, fast check for the one mistake worth failing on immediately
+     * rather than after a round trip through the queue: uploading the
+     * wrong file entirely. Row-level validation still happens per-row in
+     * import() itself, since that's not something worth blocking the
+     * upload on.
+     */
+    public function assertValidHeader(string $filePath): void
+    {
+        $handle = fopen($filePath, 'r');
+
+        if ($handle === false) {
+            throw new InvalidArgumentException('Could not read the uploaded file.');
+        }
+
+        $header = fgetcsv($handle);
+        fclose($handle);
+
+        if ($header !== self::EXPECTED_HEADER) {
+            throw new InvalidArgumentException(
+                'CSV columns do not match the required template: '.implode(', ', self::EXPECTED_HEADER)
+            );
+        }
+    }
+
+    /**
      * The target class is fixed by the page the admin is on, not a per-row
      * CSV column - every row in the file enrolls into $class.
      *
