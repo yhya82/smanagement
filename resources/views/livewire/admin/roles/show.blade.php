@@ -34,11 +34,15 @@
 
     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 space-y-4">
         <h2 class="text-sm font-medium text-gray-900 dark:text-gray-100">Permissions</h2>
+        @if ($this->isAdministratorRole())
+            <p class="text-xs text-gray-500 dark:text-gray-400">The Administrator role always has every permission and can't be edited here.</p>
+        @endif
         <form wire:submit="savePermissions" class="space-y-4">
             <div class="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto">
                 @foreach ($permissions as $permission)
                     <label class="flex items-start gap-2 text-sm">
                         <input type="checkbox" wire:model="selectedPermissionIds" value="{{ $permission->id }}"
+                            @disabled($this->isAdministratorRole())
                             class="mt-0.5 rounded border-gray-300 dark:border-gray-600">
                         <span>
                             <span class="block font-medium text-gray-900 dark:text-gray-100">{{ $permission->key }}</span>
@@ -47,7 +51,10 @@
                     </label>
                 @endforeach
             </div>
-            <button type="submit" class="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-indigo-500">
+            @if ($permissionsError)
+                <p class="text-xs text-red-600 dark:text-red-400">{{ $permissionsError }}</p>
+            @endif
+            <button type="submit" @disabled($this->isAdministratorRole()) class="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
                 Save permissions
             </button>
         </form>

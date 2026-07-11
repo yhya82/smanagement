@@ -116,7 +116,7 @@ class ComputeRankingsJobTest extends TestCase
         $this->assertStringContainsString('1 class(es) failed', $notification->message);
     }
 
-    public function test_the_job_does_not_delete_itself_when_a_model_is_missing_and_does_not_auto_retry(): void
+    public function test_the_job_does_not_auto_retry(): void
     {
         $year = AcademicYear::create(['name' => '2026/2027', 'start_date' => '2026-09-01', 'end_date' => '2027-07-31', 'is_active' => true]);
         $term = Term::create(['academic_year_id' => $year->id, 'name' => 'Term 1', 'start_date' => '2026-09-01', 'end_date' => '2026-12-12', 'is_active' => true]);
@@ -124,11 +124,70 @@ class ComputeRankingsJobTest extends TestCase
 
         $job = new ComputeRankingsJob($term, $admin);
 
-        // These two properties are what stop a deleted Term/User from
-        // making the job vanish with zero trace, and what stop a job-level
-        // retry (which would just redo idempotent work here, but matters a
-        // lot more for ImportStudentsJob's sibling implementation).
-        $this->assertFalse($job->deleteWhenMissingModels);
         $this->assertSame(1, $job->tries);
+    }
+
+    public function test_a_term_deleted_before_the_job_runs_is_handled_gracefully_without_throwing(): void
+    {
+        $year = AcademicYear::create(['name' => '2026/2027', 'start_date' => '2026-09-01', 'end_date' => '2027-07-31', 'is_active' => true]);
+        $term = Term::create(['academic_year_id' => $year->id, 'name' => 'Term 1', 'start_date' => '2026-09-01', 'end_date' => '2026-12-12', 'is_active' => true]);
+        $admin = User::factory()->create(['status' => UserStatus::Active]);
+
+        $job = new ComputeRankingsJob($term, $admin);
+
+        // Simulates what actually happens between dispatch and a worker
+        // picking the job up: serialize it (as the queue driver would
+        // store it), delete the term, then unserialize (as the worker
+        // would). The job only carries the term's ID, not the model
+        // itself, so this is plain PHP serialization with nothing for
+        // SerializesModels to choke on - unlike storing the Eloquent model
+        // directly, which throws ModelNotFoundException on unserialize
+        // and, per Laravel's own CallQueuedHandler::failed(), throws that
+        // same exception again before this job's failed() is ever reached.
+        $serialized = serialize($job);
+        $term->delete();
+        $job = unserialize($serialized);
+
+        $job->handle(app(RankingService::class));
+
+        $this->assertSame(0, TermRanking::count());
+        $this->assertTrue($admin->notifications()->doesntExist(), 'A gracefully-skipped run is not a failure - no notification expected.');
+    }
+
+    public function test_a_requester_deleted_before_the_job_runs_still_computes_but_skips_the_notification(): void
+    {
+        $gradeLevel = GradeLevel::create(['name' => 'Primary 1', 'sort_order' => 1]);
+        $year = AcademicYear::create(['name' => '2026/2027', 'start_date' => '2026-09-01', 'end_date' => '2027-07-31', 'is_active' => true]);
+        $term = Term::create(['academic_year_id' => $year->id, 'name' => 'Term 1', 'start_date' => '2026-09-01', 'end_date' => '2026-12-12', 'is_active' => true]);
+        $class = SchoolClass::create(['grade_level_id' => $gradeLevel->id, 'academic_year_id' => $year->id, 'name' => 'Blue Stream']);
+        $subject = Subject::create(['name' => 'Mathematics', 'code' => 'MATH1']);
+
+        $teacherUser = User::factory()->create(['status' => UserStatus::Active]);
+        $teacher = Teacher::create(['user_id' => $teacherUser->id, 'employee_no' => 'T1', 'status' => 'active', 'hire_date' => '2020-01-01']);
+
+        $studentUser = User::factory()->create(['status' => UserStatus::Active]);
+        $student = Student::create([
+            'user_id' => $studentUser->id, 'student_no' => 'S1', 'first_name' => 'Test', 'last_name' => 'Student',
+            'dob' => '2015-01-01', 'gender' => Gender::Male, 'admission_date' => '2024-01-01',
+            'status' => StudentStatus::Active, 'current_class_id' => $class->id,
+        ]);
+
+        ResultEntry::create([
+            'student_id' => $student->id, 'subject_id' => $subject->id, 'class_id' => $class->id,
+            'term_id' => $term->id, 'score' => 90, 'max_score' => 100, 'status' => ResultStatus::Approved,
+            'entered_by' => $teacher->id,
+        ]);
+
+        $admin = User::factory()->create(['status' => UserStatus::Active]);
+
+        $job = new ComputeRankingsJob($term, $admin);
+
+        $serialized = serialize($job);
+        $admin->delete();
+        $job = unserialize($serialized);
+
+        $job->handle(app(RankingService::class));
+
+        $this->assertTrue(TermRanking::where('student_id', $student->id)->exists(), 'Computation itself has nothing to do with the requester and should still proceed.');
     }
 }

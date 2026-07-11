@@ -114,19 +114,61 @@ class ImportStudentsJobTest extends TestCase
         $this->assertFalse(Storage::disk('local')->exists($path));
     }
 
-    public function test_the_job_does_not_delete_itself_when_a_model_is_missing_and_does_not_auto_retry(): void
+    public function test_the_job_does_not_auto_retry(): void
     {
         $class = $this->makeClass();
         $admin = User::factory()->create(['status' => UserStatus::Active]);
 
         $job = new ImportStudentsJob($class, 'imports/whatever.csv', $admin);
 
-        // Without these, a Class/User deleted between dispatch and
-        // execution makes the whole job vanish with zero trace (not even
-        // failed() runs), and a retry after a partial failure would
-        // duplicate every student already created by rows that succeeded
-        // before the failure.
-        $this->assertFalse($job->deleteWhenMissingModels);
+        // A retry after a partial failure would duplicate every student
+        // already created by rows that succeeded before the failure.
         $this->assertSame(1, $job->tries);
+    }
+
+    public function test_a_class_deleted_before_the_job_runs_is_handled_gracefully_without_throwing(): void
+    {
+        $class = $this->makeClass();
+        $admin = User::factory()->create(['status' => UserStatus::Active]);
+        $path = $this->storeCsv("first_name,last_name,dob,gender,guardian_name,guardian_relationship,guardian_phone\nJane,Doe,2015-05-01,female,John Doe,Father,0551234567");
+
+        $job = new ImportStudentsJob($class, $path, $admin);
+
+        // Simulates what actually happens between dispatch and a worker
+        // picking the job up: serialize it (as the queue driver would
+        // store it), delete the class, then unserialize (as the worker
+        // would). The job only carries the class's ID, not the model
+        // itself, so this is plain PHP serialization with nothing for
+        // SerializesModels to choke on - unlike storing the Eloquent model
+        // directly, which throws ModelNotFoundException on unserialize
+        // and, per Laravel's own CallQueuedHandler::failed(), throws that
+        // same exception again before this job's failed() is ever reached.
+        $serialized = serialize($job);
+        $class->delete();
+        $job = unserialize($serialized);
+
+        $job->handle(app(StudentImportService::class));
+
+        $this->assertFalse(Storage::disk('local')->exists($path), 'The uploaded file must still be cleaned up.');
+        $this->assertSame(0, Student::count());
+        $this->assertTrue($admin->notifications()->doesntExist(), 'A gracefully-skipped run is not a failure - no notification expected.');
+    }
+
+    public function test_an_importer_deleted_before_the_job_runs_still_imports_but_skips_the_notification(): void
+    {
+        $class = $this->makeClass();
+        $admin = User::factory()->create(['status' => UserStatus::Active]);
+        $path = $this->storeCsv("first_name,last_name,dob,gender,guardian_name,guardian_relationship,guardian_phone\nJane,Doe,2015-05-01,female,John Doe,Father,0551234567");
+
+        $job = new ImportStudentsJob($class, $path, $admin);
+
+        $serialized = serialize($job);
+        $admin->delete();
+        $job = unserialize($serialized);
+
+        $job->handle(app(StudentImportService::class));
+
+        $this->assertSame(1, Student::where('first_name', 'Jane')->count(), 'The import itself has nothing to do with the requesting admin and should still proceed.');
+        $this->assertFalse(Storage::disk('local')->exists($path));
     }
 }

@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\SchoolClass;
 use App\Models\User;
 use App\Notifications\StudentImportCompleted;
+use App\Notifications\StudentImportFailed;
 use App\Services\StudentImportService;
 use App\Support\SafeNotifier;
 use Illuminate\Bus\Queueable;
@@ -34,37 +35,60 @@ class ImportStudentsJob implements ShouldQueue
      * create duplicate students - and the uploaded file is already
      * deleted by the first attempt's handle(), so a retry would just fail
      * again anyway with a misleading "file not found" error that masks
-     * what actually went wrong. One attempt, a clean failed() log, and the
-     * admin re-uploads if needed.
+     * what actually went wrong. One attempt, a clean failed() log and
+     * notification, and the admin re-uploads if needed.
      */
     public int $tries = 1;
 
     /**
-     * See ComputeRankingsJob's identical property for why this matters:
-     * without it, a deleted Class/User between dispatch and execution
-     * makes this job vanish with no log at all, and the stored upload
-     * leaks on disk forever.
+     * Only IDs are kept as properties, never the SchoolClass/User instances
+     * themselves - see ComputeRankingsJob's identical properties for why:
+     * storing an Eloquent model as a job property makes SerializesModels
+     * re-fetch it (and throw ModelNotFoundException if it's gone) on every
+     * deserialization, including the one Laravel triggers internally while
+     * reporting a failure - which happens before this job's own failed()
+     * is ever reached. Plain IDs avoid that path entirely.
      */
-    public bool $deleteWhenMissingModels = false;
+    private readonly int $classId;
+
+    private readonly int $importedById;
 
     public function __construct(
-        private readonly SchoolClass $class,
+        SchoolClass $class,
         private readonly string $storedFilePath,
-        private readonly User $importedBy,
-    ) {}
+        User $importedBy,
+    ) {
+        $this->classId = $class->id;
+        $this->importedById = $importedBy->id;
+
+        $this->onQueue('bulk');
+    }
 
     public function handle(StudentImportService $importService): void
     {
+        $class = SchoolClass::find($this->classId);
+
+        if (! $class) {
+            Log::warning('ImportStudentsJob: target class no longer exists, discarding upload.', ['class_id' => $this->classId]);
+            Storage::disk('local')->delete($this->storedFilePath);
+
+            return;
+        }
+
         try {
-            $result = $importService->import(Storage::disk('local')->path($this->storedFilePath), $this->class);
+            $result = $importService->import(Storage::disk('local')->path($this->storedFilePath), $class);
 
             Log::info('Student import complete', [
-                'class_id' => $this->class->id,
+                'class_id' => $class->id,
                 'created' => $result['created'],
                 'failed' => count($result['errors']),
             ]);
 
-            SafeNotifier::send($this->importedBy, new StudentImportCompleted($this->class, $result['created'], count($result['errors'])));
+            if ($importedBy = User::find($this->importedById)) {
+                SafeNotifier::send($importedBy, new StudentImportCompleted($class, $result['created'], count($result['errors'])));
+            } else {
+                Log::warning('ImportStudentsJob: importing user no longer exists, completion notification skipped.', ['user_id' => $this->importedById]);
+            }
         } finally {
             Storage::disk('local')->delete($this->storedFilePath);
         }
@@ -74,6 +98,10 @@ class ImportStudentsJob implements ShouldQueue
     {
         Storage::disk('local')->delete($this->storedFilePath);
 
-        Log::error('ImportStudentsJob failed', ['class_id' => $this->class->id, 'exception' => $exception->getMessage()]);
+        Log::error('ImportStudentsJob failed', ['class_id' => $this->classId, 'exception' => $exception->getMessage()]);
+
+        if ($importedBy = User::find($this->importedById)) {
+            SafeNotifier::send($importedBy, new StudentImportFailed($this->classId));
+        }
     }
 }

@@ -307,6 +307,21 @@ class UserRoleManagementTest extends TestCase
         $this->assertSame([$permission->id], $role->permissions()->pluck('permissions.id')->all());
     }
 
+    public function test_the_administrator_roles_permissions_cannot_be_edited(): void
+    {
+        $adminRole = Role::where('name', 'Administrator')->first();
+        $originalPermissionIds = $adminRole->permissions()->pluck('permissions.id')->all();
+        $onePermission = Permission::first();
+
+        Livewire::actingAs($this->admin)
+            ->test(RolesShow::class, ['role' => $adminRole])
+            ->set('selectedPermissionIds', [$onePermission->id])
+            ->call('savePermissions')
+            ->assertSet('permissionsError', fn ($value) => str_contains($value, "can't be edited"));
+
+        $this->assertSame($originalPermissionIds, $adminRole->fresh()->permissions()->pluck('permissions.id')->all());
+    }
+
     public function test_disabling_a_role_revokes_it_from_holders_immediately(): void
     {
         $role = Role::create(['name' => 'Librarian', 'is_system' => false, 'is_active' => true]);
@@ -384,6 +399,21 @@ class UserRoleManagementTest extends TestCase
             ->test(UsersCreate::class)
             ->assertDontSee('Teacher')
             ->assertDontSee('Student');
+    }
+
+    public function test_a_malicious_role_id_cannot_create_a_user_holding_teacher_role(): void
+    {
+        $teacherRole = Role::where('name', 'Teacher')->first();
+
+        Livewire::actingAs($this->admin)
+            ->test(UsersCreate::class)
+            ->set('name', 'Sneaky User')
+            ->set('email', 'sneaky@test.com')
+            ->set('role_id', (string) $teacherRole->id)
+            ->call('create')
+            ->assertSet('roleError', fn ($value) => str_contains($value, 'cannot be assigned'));
+
+        $this->assertNull(User::where('email', 'sneaky@test.com')->first());
     }
 
     public function test_admin_can_reassign_a_users_role_to_a_custom_role(): void

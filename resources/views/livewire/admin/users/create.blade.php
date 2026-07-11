@@ -32,6 +32,9 @@
                 @endforeach
             </select>
             @error('role_id') <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+            @if ($roleError)
+                <p class="text-xs text-red-600 dark:text-red-400 mt-1">{{ $roleError }}</p>
+            @endif
         </div>
         <button type="submit" class="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-indigo-500">
             Create user

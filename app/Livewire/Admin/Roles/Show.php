@@ -19,6 +19,8 @@ class Show extends Component
     /** @var list<int> */
     public array $selectedPermissionIds = [];
 
+    public ?string $permissionsError = null;
+
     protected function rules(): array
     {
         return [
@@ -57,9 +59,33 @@ class Show extends Component
         $this->role->update($validated);
     }
 
+    /**
+     * `RolePolicy::update()` only checks the `roles.manage` permission, with
+     * no special case for which role is being edited - so without this
+     * guard, an Administrator (or anyone else holding `roles.manage`) could
+     * strip `roles.manage` itself from the Administrator role and lock
+     * every admin out of role management app-wide, or use it to grant a
+     * narrower custom role permissions well beyond what it was scoped for.
+     * Administrator is meant to always hold every permission (that's the
+     * whole premise behind its Gate::before bypass) - it isn't meant to be
+     * tuned through this screen at all.
+     */
+    public function isAdministratorRole(): bool
+    {
+        return $this->role->name === 'Administrator';
+    }
+
     public function savePermissions(): void
     {
         $this->authorize('update', $this->role);
+
+        $this->permissionsError = null;
+
+        if ($this->isAdministratorRole()) {
+            $this->permissionsError = "The Administrator role always has every permission and can't be edited here.";
+
+            return;
+        }
 
         // selectedPermissionIds is a public Livewire property, so a tampered
         // request could submit IDs beyond the checkboxes actually rendered -

@@ -61,14 +61,14 @@ The whole suite runs against an in-memory SQLite database (`phpunit.xml`) with `
 
 ## Queue worker
 
-Four jobs depend on an actual queue worker process running continuously, not just the app being deployed:
+Four jobs depend on an actual queue worker process running continuously, not just the app being deployed. They're split across two queues so a slow bulk job can't delay the two time-sensitive daily ones behind it on a single worker:
 
-- **`LockAttendanceRecordsJob`** (daily, scheduled) — locks attendance records past their 7-day direct-edit window. If this never runs, attendance edits stay open indefinitely past the window the SRS requires.
-- **`PurgeRejectedApplicationDocumentsJob`** (daily, scheduled) — purges a rejected applicant's documents/guardian PII 90 days after the decision. If this never runs, that retention policy silently never takes effect.
-- **`ImportStudentsJob`** (on demand — dispatched whenever an admin submits a bulk student CSV import) — if no worker is running, the import just sits queued forever with no feedback beyond the "queued" message the admin already saw.
-- **`ComputeRankingsJob`** (on demand — dispatched whenever an admin clicks "Compute Rankings") — same failure mode as above.
+- **`default` queue** — **`LockAttendanceRecordsJob`** (daily, scheduled) locks attendance records past their 7-day direct-edit window; **`PurgeRejectedApplicationDocumentsJob`** (daily, scheduled) purges a rejected applicant's documents/guardian PII 90 days after the decision. If these never run, attendance edits stay open past the window the SRS requires, and the retention policy silently never takes effect.
+- **`bulk` queue** — **`ImportStudentsJob`** (dispatched whenever an admin submits a bulk student CSV import) and **`ComputeRankingsJob`** (dispatched whenever an admin clicks "Compute Rankings") — both can run long enough on a large school's data that, on a single worker, they'd otherwise delay whichever daily job was due to run next.
 
-All four log a completion summary and log `failed()` calls, so if a worker *is* running you'll see evidence of it in the logs — but if no worker is running at all, nothing will tell you that on its own. In production, run `php artisan queue:work` (or Horizon) as a supervised, always-on process — a one-off deploy script or `composer setup` alone will never start one.
+Run a worker with `php artisan queue:work --queue=default,bulk` (as `composer dev` already does locally) so `default` jobs are always drained first; a busy school should run a second, dedicated `--queue=bulk` worker so a long import can't delay attendance locking or document purging at all. If no worker is running, `ImportStudentsJob`/`ComputeRankingsJob` just sit queued forever with no feedback beyond the "queued" message the admin already saw.
+
+All four jobs use `tries = 1` (no automatic retry — a retry of `ImportStudentsJob` would re-create students whose rows already succeeded the first time, and `ComputeRankingsJob`'s per-class isolation already means a retry offers no benefit). If one of the two on-demand jobs fails outright rather than partially, the admin who triggered it gets an in-app failure notification and must re-trigger it manually (re-upload the CSV, re-click "Compute Rankings") — there is no silent retry to wait for. All four log a completion summary and `failed()` calls, so if a worker *is* running you'll see evidence of it in the logs — but if no worker is running at all, nothing will tell you that on its own. In production, run `php artisan queue:work` (or Horizon) as a supervised, always-on process — a one-off deploy script or `composer setup` alone will never start one.
 
 ## Roles & permissions
 
