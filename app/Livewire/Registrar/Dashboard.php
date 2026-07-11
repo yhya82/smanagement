@@ -3,6 +3,7 @@
 namespace App\Livewire\Registrar;
 
 use App\Enums\ApprovalStatus;
+use App\Models\CalendarEvent;
 use App\Models\StudentApplication;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -27,6 +28,7 @@ class Dashboard extends Component
         return view('livewire.registrar.dashboard', [
             'counts' => $counts,
             'recentApplications' => $recentApplications,
+            'upcomingEvents' => CalendarEvent::upcoming(),
         ]);
     }
 }

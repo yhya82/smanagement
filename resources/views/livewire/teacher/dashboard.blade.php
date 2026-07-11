@@ -53,4 +53,8 @@
             </tbody>
         </table>
     </div>
+
+    <div class="mt-6">
+        @include('partials.upcoming-calendar-events')
+    </div>
 </div>

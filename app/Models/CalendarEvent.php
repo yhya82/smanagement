@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\CalendarEventType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Collection;
 
 class CalendarEvent extends Model
 {
@@ -41,5 +42,18 @@ class CalendarEvent extends Model
     public static function isHoliday(string $date): bool
     {
         return static::holidayOn($date) !== null;
+    }
+
+    /**
+     * Dashboard widget feed - whatever's coming up regardless of which term
+     * it belongs to, since a future term's events can already be entered in
+     * advance of it becoming active.
+     */
+    public static function upcoming(int $limit = 5): Collection
+    {
+        return static::whereDate('date', '>=', now()->toDateString())
+            ->orderBy('date')
+            ->limit($limit)
+            ->get();
     }
 }

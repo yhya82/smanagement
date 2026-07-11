@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Enums\ApprovalStatus;
 use App\Enums\StudentStatus;
 use App\Models\AttendanceEditRequest;
+use App\Models\CalendarEvent;
 use App\Models\Promotion;
 use App\Models\SchoolClass;
 use App\Models\Student;
@@ -35,6 +36,7 @@ class Dashboard extends Component
         return view('livewire.admin.dashboard', [
             'counts' => $counts,
             'pendingApplications' => $pendingApplications,
+            'upcomingEvents' => CalendarEvent::upcoming(),
         ]);
     }
 }

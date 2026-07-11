@@ -135,4 +135,28 @@ class SchoolCalendarTest extends TestCase
 
         $this->assertSame([$student->id], $result['marked']);
     }
+
+    public function test_the_school_calendar_widget_appears_on_every_dashboard_except_the_students(): void
+    {
+        CalendarEvent::create(['term_id' => $this->term->id, 'date' => now()->addDays(2)->toDateString(), 'title' => 'Founders Day', 'type' => 'event']);
+
+        $this->actingAs($this->admin)->get(route('admin.dashboard'))->assertSee('Founders Day')->assertSee('School Calendar');
+
+        $registrar = User::factory()->create(['status' => UserStatus::Active]);
+        $registrar->roles()->attach(Role::where('name', 'Registrar')->first());
+        $this->actingAs($registrar)->get(route('registrar.dashboard'))->assertSee('Founders Day');
+
+        $teacherUser = User::factory()->create(['status' => UserStatus::Active]);
+        $teacherUser->roles()->attach(Role::where('name', 'Teacher')->first());
+        Teacher::create(['user_id' => $teacherUser->id, 'employee_no' => 'T-widget', 'status' => 'active', 'hire_date' => '2020-01-01']);
+        $this->actingAs($teacherUser)->get(route('teacher.dashboard'))->assertSee('Founders Day');
+
+        $studentUser = User::factory()->create(['status' => UserStatus::Active]);
+        $studentUser->roles()->attach(Role::where('name', 'Student')->first());
+        Student::create([
+            'user_id' => $studentUser->id, 'student_no' => 'S-widget', 'first_name' => 'Widget', 'last_name' => 'Test',
+            'dob' => '2015-01-01', 'gender' => 'male', 'admission_date' => '2024-01-01',
+        ]);
+        $this->actingAs($studentUser)->get(route('student.dashboard'))->assertDontSee('Founders Day')->assertDontSee('School Calendar');
+    }
 }

@@ -4,6 +4,7 @@ namespace App\Livewire\Teacher;
 
 use App\Enums\ApprovalStatus;
 use App\Models\AttendanceEditRequest;
+use App\Models\CalendarEvent;
 use App\Models\Student;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -34,6 +35,7 @@ class Dashboard extends Component
             'studentCount' => $studentCount,
             'pendingEditRequests' => $pendingEditRequests,
             'homeroomClass' => $teacher->homeroomClasses()->first(),
+            'upcomingEvents' => CalendarEvent::upcoming(),
         ]);
     }
 }
