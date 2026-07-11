@@ -14,8 +14,9 @@ use Livewire\Component;
  * Student and Teacher accounts already have dedicated onboarding flows
  * (application approval, teacher onboarding, bulk import) that also create
  * the linked Student/Teacher profile row a bare User wouldn't have - this
- * screen exists only for the two roles with no such flow: Registrar and
- * Administrator staff accounts.
+ * screen is for every OTHER role: Registrar and Administrator staff
+ * accounts, plus any admin-created custom role (which has no linked
+ * profile table of its own, same as Registrar/Administrator).
  */
 #[Layout('components.app-layout')]
 class Create extends Component
@@ -65,7 +66,7 @@ class Create extends Component
     public function render()
     {
         return view('livewire.admin.users.create', [
-            'roles' => Role::whereIn('name', ['Registrar', 'Administrator'])->orderBy('name')->get(),
+            'roles' => Role::assignableViaUserManagement()->get(),
         ]);
     }
 }

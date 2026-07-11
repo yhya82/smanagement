@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Users;
 
 use App\Enums\UserStatus;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -19,9 +20,13 @@ class Show extends Component
 
     public string $email = '';
 
+    public string $role_id = '';
+
     public ?string $temporaryPassword = null;
 
     public ?string $statusError = null;
+
+    public ?string $roleError = null;
 
     protected function rules(): array
     {
@@ -38,6 +43,7 @@ class Show extends Component
         $this->user = $user;
         $this->name = $user->name;
         $this->email = $user->email;
+        $this->role_id = (string) ($user->roles->first()?->id ?? '');
     }
 
     public function updateDetails(): void
@@ -47,6 +53,45 @@ class Show extends Component
         $validated = $this->validate();
 
         $this->user->update($validated);
+    }
+
+    /**
+     * Restricted to Registrar/Administrator/custom roles (see
+     * Role::scopeAssignableViaUserManagement) - both directions: a user
+     * who currently holds Teacher or Student can't be reassigned away
+     * from it here (their profile row lives elsewhere, under the
+     * dedicated onboarding flow), and the scoped query on the submitted
+     * role_id itself blocks assigning INTO Teacher/Student even if a
+     * request were crafted to bypass the dropdown's own options.
+     */
+    public function updateRole(): void
+    {
+        $this->authorize('update', $this->user);
+
+        $this->roleError = null;
+
+        if ($this->userHoldsOnboardingManagedRole()) {
+            $this->roleError = 'This user holds a Teacher or Student role, which can only be changed through their own onboarding flow.';
+
+            return;
+        }
+
+        $this->validate(['role_id' => ['required', 'exists:roles,id']]);
+
+        $role = Role::assignableViaUserManagement()->find($this->role_id);
+
+        if (! $role) {
+            $this->roleError = 'That role cannot be assigned here.';
+
+            return;
+        }
+
+        $this->user->roles()->sync([$role->id]);
+    }
+
+    public function userHoldsOnboardingManagedRole(): bool
+    {
+        return $this->user->roles()->whereIn('name', ['Teacher', 'Student'])->exists();
     }
 
     public function toggleStatus(): void
@@ -90,6 +135,8 @@ class Show extends Component
     {
         return view('livewire.admin.users.show', [
             'roleNames' => $this->user->roles->pluck('name')->join(', ') ?: 'None',
+            'roles' => Role::assignableViaUserManagement()->get(),
+            'canReassignRole' => ! $this->userHoldsOnboardingManagedRole(),
         ]);
     }
 }

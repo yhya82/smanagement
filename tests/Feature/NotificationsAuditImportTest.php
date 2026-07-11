@@ -7,6 +7,7 @@ use App\Livewire\Admin\AuditLogs\Index as AuditLogsIndex;
 use App\Livewire\Admin\Classes\AddStudent as ClassAddStudent;
 use App\Livewire\Admin\Classes\Import as ClassImport;
 use App\Livewire\Shared\Notifications;
+use App\Livewire\Shared\Profile;
 use App\Models\AcademicYear;
 use App\Models\AuditLog;
 use App\Models\GradeLevel;
@@ -69,6 +70,20 @@ class NotificationsAuditImportTest extends TestCase
             ->test(Notifications::class)
             ->call('markRead', $notification->id)
             ->assertForbidden();
+    }
+
+    public function test_a_user_can_view_their_own_profile(): void
+    {
+        $teacherUser = User::factory()->create(['name' => 'Jane Teacher', 'status' => UserStatus::Active]);
+        $teacherUser->roles()->attach(Role::where('name', 'Teacher')->first());
+        \App\Models\Teacher::create(['user_id' => $teacherUser->id, 'employee_no' => 'T99', 'status' => 'active', 'hire_date' => '2020-01-01']);
+
+        Livewire::actingAs($teacherUser)
+            ->test(Profile::class)
+            ->assertOk()
+            ->assertSee('Jane Teacher')
+            ->assertSee('Teacher')
+            ->assertSee('T99');
     }
 
     public function test_admin_can_view_and_filter_the_audit_log(): void

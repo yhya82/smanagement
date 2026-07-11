@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\UserStatus;
 use App\Livewire\Admin\ApplicationReviewShow;
 use App\Livewire\Registrar\ApplicationCreate;
+use App\Livewire\Registrar\ApplicationIndex;
 use App\Livewire\Registrar\ApplicationShow;
 use App\Models\AcademicYear;
 use App\Models\DocumentType;
@@ -190,5 +191,19 @@ class ApplicationIntakeFlowTest extends TestCase
 
         $this->assertSame('pending', $studentApplication->fresh()->status->value);
         $review->assertSet('decisionError', fn ($value) => str_contains($value, 'full capacity'));
+    }
+
+    public function test_registrar_can_view_the_applications_list(): void
+    {
+        StudentApplication::create([
+            'first_name' => 'Ama', 'last_name' => 'Owusu', 'dob' => '2016-02-01', 'gender' => 'female',
+            'submitted_by' => $this->registrar->id, 'status' => 'pending',
+        ]);
+
+        Livewire::actingAs($this->registrar)
+            ->test(ApplicationIndex::class)
+            ->assertOk()
+            ->assertSee('Ama')
+            ->assertSee('Owusu');
     }
 }

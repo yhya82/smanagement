@@ -257,4 +257,81 @@ class UserRoleManagementTest extends TestCase
             ->get(route('admin.roles.index'))
             ->assertForbidden();
     }
+
+    // --- Custom role assignment (previously a dead end: creatable but unassignable) ---
+
+    public function test_a_custom_role_can_be_assigned_to_a_new_user(): void
+    {
+        $librarianRole = Role::create(['name' => 'Librarian', 'is_system' => false, 'is_active' => true]);
+
+        Livewire::actingAs($this->admin)
+            ->test(UsersCreate::class)
+            ->set('name', 'New Librarian')
+            ->set('email', 'librarian@test.com')
+            ->set('role_id', (string) $librarianRole->id)
+            ->call('create')
+            ->assertHasNoErrors();
+
+        $user = User::where('email', 'librarian@test.com')->firstOrFail();
+        $this->assertTrue($user->hasRole('Librarian'));
+    }
+
+    public function test_teacher_and_student_roles_are_not_offered_when_creating_a_user(): void
+    {
+        Livewire::actingAs($this->admin)
+            ->test(UsersCreate::class)
+            ->assertDontSee('Teacher')
+            ->assertDontSee('Student');
+    }
+
+    public function test_admin_can_reassign_a_users_role_to_a_custom_role(): void
+    {
+        $librarianRole = Role::create(['name' => 'Librarian', 'is_system' => false, 'is_active' => true]);
+        $user = User::factory()->create(['status' => UserStatus::Active]);
+        $user->roles()->attach(Role::where('name', 'Registrar')->first());
+
+        Livewire::actingAs($this->admin)
+            ->test(UsersShow::class, ['user' => $user])
+            ->set('role_id', (string) $librarianRole->id)
+            ->call('updateRole')
+            ->assertHasNoErrors();
+
+        $user->refresh();
+        $this->assertTrue($user->hasRole('Librarian'));
+        $this->assertFalse($user->hasRole('Registrar'));
+    }
+
+    public function test_a_users_teacher_role_cannot_be_reassigned_through_user_management(): void
+    {
+        $teacherUser = User::factory()->create(['status' => UserStatus::Active]);
+        $teacherUser->roles()->attach(Role::where('name', 'Teacher')->first());
+        \App\Models\Teacher::create(['user_id' => $teacherUser->id, 'employee_no' => 'T1', 'status' => 'active', 'hire_date' => '2020-01-01']);
+
+        $registrarRole = Role::where('name', 'Registrar')->first();
+
+        Livewire::actingAs($this->admin)
+            ->test(UsersShow::class, ['user' => $teacherUser])
+            ->assertSet('canReassignRole', false)
+            ->set('role_id', (string) $registrarRole->id)
+            ->call('updateRole')
+            ->assertSet('roleError', fn ($value) => str_contains($value, 'Teacher or Student'));
+
+        $this->assertTrue($teacherUser->fresh()->hasRole('Teacher'));
+    }
+
+    public function test_a_malicious_role_id_cannot_assign_teacher_role_through_user_management(): void
+    {
+        $user = User::factory()->create(['status' => UserStatus::Active]);
+        $user->roles()->attach(Role::where('name', 'Registrar')->first());
+        $teacherRole = Role::where('name', 'Teacher')->first();
+
+        Livewire::actingAs($this->admin)
+            ->test(UsersShow::class, ['user' => $user])
+            ->set('role_id', (string) $teacherRole->id)
+            ->call('updateRole')
+            ->assertSet('roleError', fn ($value) => str_contains($value, 'cannot be assigned'));
+
+        $this->assertFalse($user->fresh()->hasRole('Teacher'));
+        $this->assertTrue($user->fresh()->hasRole('Registrar'));
+    }
 }
