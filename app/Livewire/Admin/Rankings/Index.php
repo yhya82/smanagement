@@ -35,7 +35,7 @@ class Index extends Component
     {
         $this->authorize('viewAny', TermRanking::class);
 
-        $this->termId = (string) (Term::where('is_active', true)->first()?->id ?? '');
+        $this->termId = (string) (Term::active()?->id ?? '');
     }
 
     public function updatingClassId(): void

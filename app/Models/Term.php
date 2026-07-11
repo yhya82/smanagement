@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 
 class Term extends Model
 {
@@ -53,5 +54,22 @@ class Term extends Model
     public function promotions(): HasMany
     {
         return $this->hasMany(Promotion::class);
+    }
+
+    /**
+     * The active term is read by well over a dozen call sites, most of
+     * them on every single request - cached with a broad, safe
+     * invalidation (any Term write at all busts it) rather than trying to
+     * track exactly which write flips is_active.
+     */
+    public static function active(): ?self
+    {
+        return Cache::remember('active_term', now()->addHour(), fn () => static::where('is_active', true)->first());
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(fn () => Cache::forget('active_term'));
+        static::deleted(fn () => Cache::forget('active_term'));
     }
 }

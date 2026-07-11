@@ -37,7 +37,7 @@ class Show extends Component
         $this->authorize('viewAny', TimetableEntry::class);
 
         $this->class = $class;
-        $this->termId = (string) (Term::where('is_active', true)->first()?->id ?? '');
+        $this->termId = (string) (Term::active()?->id ?? '');
     }
 
     public function generate(TimetableService $timetableService): void

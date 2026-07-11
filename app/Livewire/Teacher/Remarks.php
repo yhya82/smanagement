@@ -29,7 +29,7 @@ class Remarks extends Component
         abort_unless($teacher && $teacher->id === $class->homeroom_teacher_id, 403);
 
         $this->class = $class;
-        $this->termId = (string) (Term::where('is_active', true)->first()?->id ?? '');
+        $this->termId = (string) (Term::active()?->id ?? '');
         $this->loadRemarks();
     }
 

@@ -16,7 +16,7 @@ class Timetable extends Component
     public function render()
     {
         $teacher = Auth::user()->teacher;
-        $term = Term::where('is_active', true)->first();
+        $term = Term::active();
 
         $entries = collect();
 

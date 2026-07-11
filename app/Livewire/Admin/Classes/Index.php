@@ -44,7 +44,7 @@ class Index extends Component
      */
     public function mount(): void
     {
-        $this->academic_year_id = (string) (AcademicYear::where('is_active', true)->first()?->id ?? '');
+        $this->academic_year_id = (string) (AcademicYear::active()?->id ?? '');
     }
 
     public function create(): void

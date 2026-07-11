@@ -24,7 +24,7 @@ class Subjects extends Component
         $this->authorize('view', $class);
 
         $this->class = $class;
-        $this->term_id = (string) (Term::where('is_active', true)->first()?->id ?? '');
+        $this->term_id = (string) (Term::active()?->id ?? '');
     }
 
     protected function rules(): array

@@ -36,7 +36,7 @@ class Grades extends Component
 
         $this->class = $class;
         $this->subject = $subject;
-        $this->term = Term::where('is_active', true)->first();
+        $this->term = Term::active();
 
         $this->loadEntries();
     }
