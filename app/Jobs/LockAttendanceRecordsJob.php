@@ -8,6 +8,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * SRS §16: attendance is directly editable for 7 days, after which an
@@ -21,9 +23,22 @@ class LockAttendanceRecordsJob implements ShouldQueue
 
     public function handle(): void
     {
-        AttendanceRecord::query()
+        $locked = AttendanceRecord::query()
             ->whereNull('locked_at')
             ->whereDate('date', '<=', now()->subDays(7)->toDateString())
             ->update(['locked_at' => now()]);
+
+        Log::info('Attendance records locked past the 7-day edit window', ['count' => $locked]);
+    }
+
+    /**
+     * The only place this data-integrity guarantee's actual execution
+     * becomes visible at all - if the queue worker isn't running, this
+     * never fires either, but at least a failure *while* running doesn't
+     * vanish silently.
+     */
+    public function failed(Throwable $exception): void
+    {
+        Log::error('LockAttendanceRecordsJob failed', ['exception' => $exception->getMessage()]);
     }
 }
