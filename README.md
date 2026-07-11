@@ -57,16 +57,18 @@ Runs the Laravel dev server, Vite, a queue worker, and `php artisan pail` (log t
 php artisan test
 ```
 
-The whole suite runs against an in-memory SQLite database (`phpunit.xml`) with `array` cache/session/queue drivers, so it never touches real infrastructure. `tests/Feature` covers HTTP/Livewire/policy behavior end-to-end; `tests/Unit` covers business logic in isolation (ranking math, promotion rule matching, notification failure handling, cache invalidation) without going through a controller or component. CI (`.github/workflows/tests.yml`) runs the full suite on every push/PR to `master`.
+The whole suite runs against an in-memory SQLite database (`phpunit.xml`) with `array` cache/session drivers and `QUEUE_CONNECTION=sync` (queued jobs run inline during the test itself, not asynchronously), so it never touches real infrastructure. `tests/Feature` covers HTTP/Livewire/policy behavior end-to-end; `tests/Unit` covers business logic in isolation (ranking math, promotion rule matching, notification failure handling, cache invalidation) without going through a controller or component. CI (`.github/workflows/tests.yml`) runs the full suite on every push/PR to `master`.
 
 ## Queue worker
 
-Two scheduled jobs depend on an actual queue worker process running continuously, not just the app being deployed:
+Four jobs depend on an actual queue worker process running continuously, not just the app being deployed:
 
-- **`LockAttendanceRecordsJob`** (daily) — locks attendance records past their 7-day direct-edit window. If this never runs, attendance edits stay open indefinitely past the window the SRS requires.
-- **`PurgeRejectedApplicationDocumentsJob`** (daily) — purges a rejected applicant's documents/guardian PII 90 days after the decision. If this never runs, that retention policy silently never takes effect.
+- **`LockAttendanceRecordsJob`** (daily, scheduled) — locks attendance records past their 7-day direct-edit window. If this never runs, attendance edits stay open indefinitely past the window the SRS requires.
+- **`PurgeRejectedApplicationDocumentsJob`** (daily, scheduled) — purges a rejected applicant's documents/guardian PII 90 days after the decision. If this never runs, that retention policy silently never takes effect.
+- **`ImportStudentsJob`** (on demand — dispatched whenever an admin submits a bulk student CSV import) — if no worker is running, the import just sits queued forever with no feedback beyond the "queued" message the admin already saw.
+- **`ComputeRankingsJob`** (on demand — dispatched whenever an admin clicks "Compute Rankings") — same failure mode as above.
 
-Both jobs log a completion summary and log `failed()` calls, so if a worker *is* running you'll see evidence of it in the logs — but if no worker is running at all, nothing will tell you that on its own. In production, run `php artisan queue:work` (or Horizon) as a supervised, always-on process — a one-off deploy script or `composer setup` alone will never start one.
+All four log a completion summary and log `failed()` calls, so if a worker *is* running you'll see evidence of it in the logs — but if no worker is running at all, nothing will tell you that on its own. In production, run `php artisan queue:work` (or Horizon) as a supervised, always-on process — a one-off deploy script or `composer setup` alone will never start one.
 
 ## Roles & permissions
 

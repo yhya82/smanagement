@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
@@ -138,6 +139,19 @@ class User extends Authenticatable
      */
     public function invalidateOtherSessions(?string $exceptSessionId = null): void
     {
+        if (config('session.driver') !== 'database') {
+            // This only ever does something meaningful on the database
+            // session driver - failing silently here would mean an admin's
+            // "reset this compromised account's password" action reports
+            // success while quietly invalidating nothing.
+            Log::warning('invalidateOtherSessions() called but SESSION_DRIVER is not database - no sessions were invalidated.', [
+                'user_id' => $this->id,
+                'session_driver' => config('session.driver'),
+            ]);
+
+            return;
+        }
+
         DB::table('sessions')
             ->where('user_id', $this->id)
             ->when($exceptSessionId, fn ($query) => $query->where('id', '!=', $exceptSessionId))

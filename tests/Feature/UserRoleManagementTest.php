@@ -170,6 +170,12 @@ class UserRoleManagementTest extends TestCase
 
     public function test_resetting_a_password_invalidates_the_users_existing_sessions(): void
     {
+        // invalidateOtherSessions() only acts when it believes the app is
+        // actually running on the database session driver - the test env
+        // defaults to 'array' for speed, so this is set explicitly to
+        // exercise the real guarded code path rather than its no-op branch.
+        config(['session.driver' => 'database']);
+
         $user = User::factory()->create(['status' => UserStatus::Active, 'must_change_password' => false]);
         $user->roles()->attach(Role::where('name', 'Registrar')->first());
 
@@ -187,6 +193,8 @@ class UserRoleManagementTest extends TestCase
 
     public function test_deactivating_a_user_invalidates_their_existing_sessions(): void
     {
+        config(['session.driver' => 'database']);
+
         $user = User::factory()->create(['status' => UserStatus::Active]);
         $user->roles()->attach(Role::where('name', 'Registrar')->first());
 
@@ -204,6 +212,8 @@ class UserRoleManagementTest extends TestCase
 
     public function test_changing_your_own_password_invalidates_other_sessions_but_keeps_the_current_one(): void
     {
+        config(['session.driver' => 'database']);
+
         $user = User::factory()->create(['status' => UserStatus::Active, 'must_change_password' => false, 'password' => Hash::make('OldPass123!')]);
 
         DB::table('sessions')->insert([
@@ -224,6 +234,24 @@ class UserRoleManagementTest extends TestCase
 
         $this->assertSame(0, DB::table('sessions')->where('id', 'other-device-session')->count());
         $this->assertSame(1, DB::table('sessions')->where('id', $currentSessionId)->count());
+    }
+
+    public function test_invalidate_other_sessions_is_a_safe_no_op_when_not_on_the_database_session_driver(): void
+    {
+        config(['session.driver' => 'array']);
+
+        $user = User::factory()->create(['status' => UserStatus::Active]);
+
+        DB::table('sessions')->insert([
+            'id' => 'stale-session-id-3', 'user_id' => $user->id, 'ip_address' => '127.0.0.1',
+            'user_agent' => 'test', 'payload' => base64_encode('x'), 'last_activity' => time(),
+        ]);
+
+        // Must not throw, and must leave the row alone rather than pretend
+        // to have invalidated a session it has no way to actually reach.
+        $user->invalidateOtherSessions();
+
+        $this->assertSame(1, DB::table('sessions')->where('id', 'stale-session-id-3')->count());
     }
 
     public function test_registrar_cannot_access_user_management(): void

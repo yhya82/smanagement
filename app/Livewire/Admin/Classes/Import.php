@@ -43,6 +43,8 @@ class Import extends Component
      */
     public function import(StudentImportService $importService): void
     {
+        $this->authorize('create', Student::class);
+
         $this->importError = null;
         $this->queued = false;
 

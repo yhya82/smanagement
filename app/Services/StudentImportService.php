@@ -69,21 +69,15 @@ class StudentImportService
      */
     public function import(string $filePath, SchoolClass $class): array
     {
+        $this->assertValidHeader($filePath);
+
         $handle = fopen($filePath, 'r');
 
         if ($handle === false) {
             throw new InvalidArgumentException('Could not read the uploaded file.');
         }
 
-        $header = fgetcsv($handle);
-
-        if ($header !== self::EXPECTED_HEADER) {
-            fclose($handle);
-
-            throw new InvalidArgumentException(
-                'CSV columns do not match the required template: '.implode(', ', self::EXPECTED_HEADER)
-            );
-        }
+        fgetcsv($handle); // header shape already checked by assertValidHeader() above
 
         $created = 0;
         $errors = [];

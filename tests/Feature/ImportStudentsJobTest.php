@@ -113,4 +113,20 @@ class ImportStudentsJobTest extends TestCase
 
         $this->assertFalse(Storage::disk('local')->exists($path));
     }
+
+    public function test_the_job_does_not_delete_itself_when_a_model_is_missing_and_does_not_auto_retry(): void
+    {
+        $class = $this->makeClass();
+        $admin = User::factory()->create(['status' => UserStatus::Active]);
+
+        $job = new ImportStudentsJob($class, 'imports/whatever.csv', $admin);
+
+        // Without these, a Class/User deleted between dispatch and
+        // execution makes the whole job vanish with zero trace (not even
+        // failed() runs), and a retry after a partial failure would
+        // duplicate every student already created by rows that succeeded
+        // before the failure.
+        $this->assertFalse($job->deleteWhenMissingModels);
+        $this->assertSame(1, $job->tries);
+    }
 }
