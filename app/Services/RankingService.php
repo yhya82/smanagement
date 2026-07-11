@@ -10,6 +10,8 @@ use App\Models\SchoolSetting;
 use App\Models\Term;
 use App\Models\TermRanking;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class RankingService
 {
@@ -25,8 +27,23 @@ class RankingService
      * combine with the school's configured weights; only one approved -> use
      * it alone as an interim subject score (don't make a student wait for
      * the final to see where they stand).
+     *
+     * A lock (not just a transaction) guards the whole computation: two
+     * admins clicking "Compute" for the same class/term at once would
+     * otherwise both read the same result rows and race to write
+     * overlapping rankings, colliding on TermRanking's unique constraint
+     * unpredictably rather than one simply running after the other. The
+     * transaction inside it is what keeps a crash mid-loop from leaving
+     * some students freshly ranked and others holding a stale prior result.
      */
     public function computeForClassTerm(SchoolClass $class, Term $term): Collection
+    {
+        return Cache::lock("ranking-compute:{$class->id}:{$term->id}", 30)->block(3, fn () => DB::transaction(
+            fn () => $this->compute($class, $term)
+        ));
+    }
+
+    private function compute(SchoolClass $class, Term $term): Collection
     {
         $weights = SchoolSetting::current();
 

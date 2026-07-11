@@ -99,6 +99,20 @@ class PromotionAndRankingTest extends TestCase
         $this->assertSame('90.00', $ranking->average);
     }
 
+    public function test_computing_rankings_for_the_same_class_and_term_concurrently_is_blocked_not_raced(): void
+    {
+        // Simulates a second admin's "Compute" click arriving while the
+        // first is still running: the lock computeForClassTerm() takes
+        // must make the second caller wait/fail rather than both racing
+        // to write overlapping rankings.
+        $lock = \Illuminate\Support\Facades\Cache::lock("ranking-compute:{$this->classA->id}:{$this->term->id}", 30);
+        $this->assertTrue($lock->get(), 'Test setup: expected to acquire the lock first.');
+
+        $this->expectException(\Illuminate\Contracts\Cache\LockTimeoutException::class);
+
+        app(\App\Services\RankingService::class)->computeForClassTerm($this->classA, $this->term);
+    }
+
     public function test_admin_can_create_toggle_and_delete_a_promotion_rule(): void
     {
         Livewire::actingAs($this->admin)
