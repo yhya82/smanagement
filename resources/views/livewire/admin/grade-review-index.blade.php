@@ -1,5 +1,27 @@
 <div>
-    <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">Grade Review</h1>
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Grade Review</h1>
+        <div class="flex items-end gap-3">
+            <div>
+                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Class</label>
+                <select wire:model.live="classId" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm text-sm">
+                    <option value="">All classes</option>
+                    @foreach ($classes as $class)
+                        <option value="{{ $class->id }}">{{ $class->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Subject</label>
+                <select wire:model.live="subjectId" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm text-sm">
+                    <option value="">All subjects</option>
+                    @foreach ($subjects as $subject)
+                        <option value="{{ $subject->id }}">{{ $subject->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+    </div>
 
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
