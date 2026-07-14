@@ -105,6 +105,30 @@ class NotificationsAuditImportTest extends TestCase
             ->assertDontSee('Test #2');
     }
 
+    public function test_admin_can_filter_the_audit_log_by_user_and_date(): void
+    {
+        $otherUser = User::factory()->create(['status' => UserStatus::Active]);
+
+        // created_at isn't mass-assignable (matches how the real Auditable
+        // trait writes rows), so it has to be backdated after the fact.
+        $backdate = fn (AuditLog $log, string $date) => tap($log)->forceFill(['created_at' => $date])->save();
+
+        $backdate(AuditLog::create(['user_id' => $this->admin->id, 'action' => 'a', 'auditable_type' => 'Test', 'auditable_id' => 10]), '2026-01-05');
+        $backdate(AuditLog::create(['user_id' => $otherUser->id, 'action' => 'a', 'auditable_type' => 'Test', 'auditable_id' => 20]), '2026-01-05');
+        $backdate(AuditLog::create(['user_id' => $this->admin->id, 'action' => 'a', 'auditable_type' => 'Test', 'auditable_id' => 30]), '2026-02-05');
+
+        Livewire::actingAs($this->admin)
+            ->test(AuditLogsIndex::class)
+            ->set('userId', (string) $this->admin->id)
+            ->assertSee('Test #10')
+            ->assertDontSee('Test #20')
+            ->assertSee('Test #30')
+            ->set('from', '2026-01-01')
+            ->set('to', '2026-01-31')
+            ->assertSee('Test #10')
+            ->assertDontSee('Test #30');
+    }
+
     public function test_audit_log_shows_a_readable_before_after_diff_not_raw_json(): void
     {
         AuditLog::create([
@@ -159,6 +183,29 @@ class NotificationsAuditImportTest extends TestCase
             ->call('import')
             ->assertSet('importError', fn ($value) => str_contains($value, 'do not match the required template'))
             ->assertSet('queued', false);
+    }
+
+    public function test_repeated_rapid_import_triggers_are_rate_limited(): void
+    {
+        Queue::fake();
+        Storage::fake('local');
+
+        $class = $this->makeClass();
+        $csv = "first_name,last_name,dob,gender,guardian_name,guardian_relationship,guardian_phone\n"
+            ."Jane,Doe,2015-05-01,female,John Doe,Father,0551234567";
+
+        $component = Livewire::actingAs($this->admin)->test(ClassImport::class, ['class' => $class]);
+
+        for ($i = 0; $i < 5; $i++) {
+            $component->set('file', UploadedFile::fake()->createWithContent("students{$i}.csv", $csv))->call('import');
+        }
+
+        $component->set('file', UploadedFile::fake()->createWithContent('students5.csv', $csv))
+            ->call('import')
+            ->assertSet('importError', fn ($value) => str_contains($value, 'Too many imports'))
+            ->assertSet('queued', false);
+
+        Queue::assertPushed(ImportStudentsJob::class, 5);
     }
 
     public function test_admin_can_enroll_a_single_student_into_a_class(): void

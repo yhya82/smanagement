@@ -95,6 +95,17 @@ return [
             'report' => false,
         ],
 
+        // Deliberately a sibling of app/private and app/public, not nested
+        // inside either - both are backup *sources* (see config/backup.php),
+        // so storing backups anywhere under them would mean every new
+        // backup zips up every previous backup along with it.
+        'backups' => [
+            'driver' => 'local',
+            'root' => storage_path('app/backups'),
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*

@@ -18,6 +18,17 @@ trait Auditable
 {
     protected static function bootAuditable(): void
     {
+        static::created(function ($model) {
+            AuditLog::create([
+                'user_id' => auth()->id(),
+                'action' => class_basename($model).'.created',
+                'auditable_type' => static::class,
+                'auditable_id' => $model->getKey(),
+                'new_values' => $model->getAttributes(),
+                'ip_address' => request()?->ip(),
+            ]);
+        });
+
         static::updated(function ($model) {
             $changes = $model->getChanges();
             unset($changes['updated_at']);
@@ -38,6 +49,18 @@ trait Auditable
                 'auditable_id' => $model->getKey(),
                 'old_values' => $original,
                 'new_values' => $changes,
+                'ip_address' => request()?->ip(),
+            ]);
+        });
+
+        static::deleted(function ($model) {
+            AuditLog::create([
+                'user_id' => auth()->id(),
+                'action' => class_basename($model).'.deleted',
+                'auditable_type' => static::class,
+                'auditable_id' => $model->getKey(),
+                'old_values' => $model->getAttributes(),
+                'ip_address' => request()?->ip(),
             ]);
         });
     }

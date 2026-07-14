@@ -70,6 +70,44 @@ Run a worker with `php artisan queue:work --queue=default,bulk` (as `composer de
 
 All four jobs use `tries = 1` (no automatic retry — a retry of `ImportStudentsJob` would re-create students whose rows already succeeded the first time, and `ComputeRankingsJob`'s per-class isolation already means a retry offers no benefit). If one of the two on-demand jobs fails outright rather than partially, the admin who triggered it gets an in-app failure notification and must re-trigger it manually (re-upload the CSV, re-click "Compute Rankings") — there is no silent retry to wait for. All four log a completion summary and `failed()` calls, so if a worker *is* running you'll see evidence of it in the logs — but if no worker is running at all, nothing will tell you that on its own. In production, run `php artisan queue:work` (or Horizon) as a supervised, always-on process — a one-off deploy script or `composer setup` alone will never start one.
 
+## Backups
+
+`spatie/laravel-backup` (`config/backup.php`) dumps the database and zips the persistent uploaded content (`storage/app/private` — admission documents — and `storage/app/public` — avatars, school logo) into `storage/app/backups`, a disk deliberately kept *outside* both source directories so a backup never zips up previous backups along with itself. Scheduled nightly in `routes/console.php`: `backup:clean` at 01:00, `backup:run` at 01:30, `backup:monitor` at 02:00.
+
+**Restoring:**
+```bash
+# Extract the dump from the zip (the exact filename varies by timestamp)
+unzip storage/app/backups/Laravel/<timestamp>.zip -d /tmp/restore
+
+# Restore the database
+mysql -u <user> -p <database> < /tmp/restore/db-dumps_mysql-<database>.sql
+
+# Restore uploaded files by copying the extracted app/private and app/public
+# folders back into storage/app/
+```
+This exact sequence was tested against a real backup of this project's dev database, restored into a throwaway database, with row counts on `users`/`students`/`audit_logs` compared against the original and confirmed identical.
+
+In production, point `MYSQLDUMP_BINARY_PATH` at wherever `mysqldump` actually lives if it isn't already on `PATH` (needed locally here because of the XAMPP install — see `.env`), set `BACKUP_NOTIFICATION_EMAIL` and real `MAIL_*` credentials so a failed backup is an actual alert and not just a line in the log (`MAIL_MAILER=log` by default — see [Notifications](#notifications)), and add the `backups` disk's destination (or a cloud disk like `s3`) to your actual off-site storage — a backup that lives on the same server as the database it's backing up doesn't survive that server failing.
+
+## Monitoring
+
+`/up` (Laravel's default health route) is wired to more than "did the app boot" via a `DiagnosingHealth` listener in `AppServiceProvider`: it also fails (HTTP 500) if the database is unreachable, if the `jobs` table backlog exceeds 500 rows (the cheapest available signal that no queue worker is actually draining it — see [Queue worker](#queue-worker)), or if `failed_jobs` exceeds 100. Point an uptime monitor at `/up` in production; nothing currently does this automatically.
+
+## Security & audit logging
+
+Two separate, both append-only, both admin-visible trails — kept separate because they answer different questions and have different shapes:
+
+- **Audit Log** (`/admin/audit-log`) — "what changed on this business record and who changed it." Populated by the `Auditable` trait (`created`/`updated`/`deleted` on `AttendanceEditRequest`, `Promotion`, `StudentApplication`) and a few explicit `AuditLog::create()` calls (password changes, profile picture changes, document replacement). Searchable by action, user, and date range.
+- **Security Events** (`/admin/security-events`) — "did someone try something they shouldn't." Failed logins, account lockouts (5 failed attempts in 60 seconds — detected independently of Fortify's own internal lockout mechanism, which this app's `throttle:login` route middleware intercepts ahead of; see the comment in `AppServiceProvider::registerSecurityEventLogging()`), and permission denials (both `$this->authorize()` and `abort_unless(..., 403)` — Laravel converts both into an `HttpException` before any custom exception renderer sees them, so the hook in `bootstrap/app.php` catches the common parent class and checks the status code rather than the original exception type). Account lockouts also notify every Administrator in-app immediately.
+
+Both policies hardcode `update`/`delete` to `false` unconditionally — neither trail is editable by anyone, including Administrator (the same `update`/`delete` carve-out from `Gate::before` that protects role names and other invariants applies here too).
+
+## Performance visibility & rate limiting
+
+`AppServiceProvider::registerSlowQueryLogging()` logs any query over 200ms; `LogSlowRequests` middleware (in the `web` group) logs any full request over 1000ms — both via `Log::warning`, so a search through the logs answers "what's actually slow" instead of a guess.
+
+Login is the only place Fortify rate-limits by default (5/minute per email+IP). The two heaviest on-demand actions — bulk CSV import (`Classes\Import::import()`) and ranking computation (`Rankings\Index::compute()`) — are separately rate-limited per-user (5/minute each) directly in the Livewire action, since each trigger queues a real `bulk`-queue job and a handful of rapid repeated clicks had no other guard against stacking several of them on top of each other.
+
 ## Roles & permissions
 
 Not Spatie — a small custom system: `roles`, `permissions`, `role_permissions`, `user_roles` tables. `User::hasPermission('some.key')` / `hasRole('Administrator')` are the two checks everything else builds on. Administrator gets an automatic bypass for every ability *except* `update`/`delete` (see the comment in `app/Providers/AppServiceProvider.php`) — several policies hardcode invariants (the 7-day attendance edit lock, hard-delete protection, homeroom-teacher-only remarks) that must hold even for Administrator, so those two abilities always fall through to the real policy method instead of being waved through.

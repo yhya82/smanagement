@@ -18,6 +18,7 @@ use App\Livewire\Admin\PromotionRules\Index as PromotionRulesIndex;
 use App\Livewire\Admin\Rankings\Index as RankingsIndex;
 use App\Livewire\Admin\Roles\Index as RolesIndex;
 use App\Livewire\Admin\Roles\Show as RolesShow;
+use App\Livewire\Admin\SecurityEvents\Index as SecurityEventsIndex;
 use App\Livewire\Admin\Settings\Calendar as SettingsCalendar;
 use App\Livewire\Admin\Settings\Edit as SettingsEdit;
 use App\Livewire\Admin\Students\Index as StudentsIndex;
@@ -64,6 +65,7 @@ Route::middleware(['auth', 'role:Administrator'])->prefix('admin')->name('admin.
     Route::get('students/{student}', StudentsShow::class)->name('students.show');
 
     Route::get('audit-log', AuditLogsIndex::class)->name('audit-log.index');
+    Route::get('security-events', SecurityEventsIndex::class)->name('security-events.index');
 
     Route::get('users', UsersIndex::class)->name('users.index');
     Route::get('users/create', UsersCreate::class)->name('users.create');

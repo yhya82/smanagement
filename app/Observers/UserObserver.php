@@ -21,6 +21,7 @@ class UserObserver
                 'auditable_id' => $user->id,
                 'old_values' => ['profile_picture' => $user->getOriginal('profile_picture')],
                 'new_values' => ['profile_picture' => $user->profile_picture],
+                'ip_address' => request()?->ip(),
             ]);
         }
 
@@ -32,6 +33,7 @@ class UserObserver
                 'action' => 'password_changed',
                 'auditable_type' => User::class,
                 'auditable_id' => $user->id,
+                'ip_address' => request()?->ip(),
             ]);
         }
     }

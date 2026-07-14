@@ -7,6 +7,7 @@ use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Services\StudentImportService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use InvalidArgumentException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -47,6 +48,21 @@ class Import extends Component
 
         $this->importError = null;
         $this->queued = false;
+
+        // Each dispatch is a real bulk-queue job with its own per-row locked
+        // transactions (see StudentImportService::generateStudentNumber()) -
+        // a handful of rapid repeated clicks (or a scripted request) could
+        // otherwise queue several large imports on top of each other with
+        // no benefit, just queue backlog.
+        $rateLimitKey = 'class-import:'.Auth::id();
+
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+            $this->importError = 'Too many imports triggered recently - please wait a minute and try again.';
+
+            return;
+        }
+
+        RateLimiter::hit($rateLimitKey, 60);
 
         $this->validate(['file' => ['required', 'file', 'mimes:csv,txt', 'max:2048']]);
 

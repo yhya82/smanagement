@@ -65,6 +65,7 @@
                     <x-nav-link :href="route('admin.attendance-edit-requests.index')" :active="request()->routeIs('admin.attendance-edit-requests.*')" icon="pencil-square">Attendance Edit Requests</x-nav-link>
                     <x-nav-link :href="route('admin.teachers.index')" :active="request()->routeIs('admin.teachers.*')" icon="user-group">Teachers</x-nav-link>
                     <x-nav-link :href="route('admin.audit-log.index')" :active="request()->routeIs('admin.audit-log.*')" icon="clipboard-list">Audit Log</x-nav-link>
+                    <x-nav-link :href="route('admin.security-events.index')" :active="request()->routeIs('admin.security-events.*')" icon="lock-closed">Security Events</x-nav-link>
                     <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')" icon="identification">Users</x-nav-link>
                     <x-nav-link :href="route('admin.roles.index')" :active="request()->routeIs('admin.roles.*')" icon="key">Roles</x-nav-link>
                     <x-nav-link :href="route('admin.settings.edit')" :active="request()->routeIs('admin.settings.*')" icon="cog">Settings</x-nav-link>

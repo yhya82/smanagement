@@ -116,6 +116,21 @@ class PromotionAndRankingTest extends TestCase
         Queue::assertNotPushed(ComputeRankingsJob::class);
     }
 
+    public function test_repeated_rapid_compute_triggers_are_rate_limited(): void
+    {
+        Queue::fake();
+
+        $component = Livewire::actingAs($this->admin)->test(RankingsIndex::class)->set('termId', (string) $this->term->id);
+
+        for ($i = 0; $i < 5; $i++) {
+            $component->call('compute');
+        }
+
+        $component->call('compute')->assertSee('Too many compute requests');
+
+        Queue::assertPushed(ComputeRankingsJob::class, 5);
+    }
+
     public function test_computing_rankings_for_the_same_class_and_term_concurrently_is_blocked_not_raced(): void
     {
         // Simulates a second admin's "Compute" click arriving while the

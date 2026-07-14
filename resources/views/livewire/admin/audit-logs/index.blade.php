@@ -1,12 +1,38 @@
 <div>
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Audit Log</h1>
-        <select wire:model.live="action" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm text-sm">
-            <option value="">All actions</option>
-            @foreach ($actions as $actionOption)
-                <option value="{{ $actionOption }}">{{ $actionOption }}</option>
-            @endforeach
-        </select>
+    </div>
+
+    <div class="flex flex-wrap items-end gap-3 mb-4">
+        <div>
+            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Action</label>
+            <select wire:model.live="action" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm text-sm">
+                <option value="">All actions</option>
+                @foreach ($actions as $actionOption)
+                    <option value="{{ $actionOption }}">{{ $actionOption }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">User</label>
+            <select wire:model.live="userId" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm text-sm">
+                <option value="">All users</option>
+                @foreach ($users as $userOption)
+                    <option value="{{ $userOption->id }}">{{ $userOption->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">From</label>
+            <input type="date" wire:model.live="from" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm text-sm">
+        </div>
+        <div>
+            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">To</label>
+            <input type="date" wire:model.live="to" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm text-sm">
+        </div>
+        @if ($action || $userId || $from || $to)
+            <button type="button" wire:click="resetFilters" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">Clear filters</button>
+        @endif
     </div>
 
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">

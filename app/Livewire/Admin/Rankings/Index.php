@@ -9,6 +9,7 @@ use App\Models\SchoolClass;
 use App\Models\Term;
 use App\Models\TermRanking;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -61,6 +62,20 @@ class Index extends Component
         $this->authorize('viewAny', TermRanking::class);
 
         $this->computeResult = null;
+
+        // Same reasoning as Classes\Import::import() - each dispatch queues
+        // a real per-class computation loop, so repeated rapid triggers
+        // (deliberate or accidental) shouldn't be able to stack several of
+        // them on top of each other for no benefit.
+        $rateLimitKey = 'rankings-compute:'.Auth::id();
+
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+            $this->computeResult = 'Too many compute requests triggered recently - please wait a minute and try again.';
+
+            return;
+        }
+
+        RateLimiter::hit($rateLimitKey, 60);
 
         $this->validate(['termId' => ['required', 'exists:terms,id']], [], ['termId' => 'term']);
 
