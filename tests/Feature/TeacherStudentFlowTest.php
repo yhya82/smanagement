@@ -83,6 +83,7 @@ class TeacherStudentFlowTest extends TestCase
         $teacher = Teacher::whereHas('user', fn ($q) => $q->where('email', 'jane@school.test'))->firstOrFail();
         $this->assertSame('pending', $teacher->status->value);
         $this->assertSame('active', $teacher->user->status->value, 'teacher account must be able to log in immediately');
+        $this->assertTrue($teacher->user->hasRole('Teacher'), 'without this, the account exists but every route/dashboard redirect treats it as roleless');
 
         // --- Admin assigns the teacher to a subject/class ---
         Livewire::actingAs($this->admin)

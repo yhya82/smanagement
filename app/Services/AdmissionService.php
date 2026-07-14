@@ -11,6 +11,7 @@ use App\Models\ApplicationDocument;
 use App\Models\AuditLog;
 use App\Models\DocumentType;
 use App\Models\Enrollment;
+use App\Models\Role;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\StudentApplication;
@@ -172,6 +173,8 @@ class AdmissionService
                 'status' => UserStatus::Active,
                 'must_change_password' => true,
             ]);
+
+            $user->roles()->attach(Role::where('name', 'Student')->firstOrFail());
 
             $student = Student::create([
                 'user_id' => $user->id,

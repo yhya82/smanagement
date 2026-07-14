@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\TeacherStatus;
 use App\Enums\UserStatus;
+use App\Models\Role;
 use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,8 @@ class TeacherOnboardingService
                 'status' => UserStatus::Active,
                 'must_change_password' => true,
             ]);
+
+            $user->roles()->attach(Role::where('name', 'Teacher')->firstOrFail());
 
             return Teacher::create([
                 'user_id' => $user->id,

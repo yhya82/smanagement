@@ -95,6 +95,7 @@ class AdmissionServiceTest extends TestCase
 
         $this->assertSame($student->id, $application->fresh()->student_id);
         $this->assertSame(2, $application->guardians()->where('student_id', $student->id)->count());
+        $this->assertTrue($student->user->hasRole('Student'), 'without this, the account exists but every route/dashboard redirect treats it as roleless');
     }
 
     private function uploadRequiredDocuments(StudentApplication $application): void
